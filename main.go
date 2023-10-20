@@ -35,7 +35,7 @@ func (w *HumanGrid) init(maxLiveCells int) {
 	for i := 0; i < maxLiveCells; i++ {
 		x := rand.Intn(w.width)
 		y := rand.Intn(w.height)
-		w.area[y*w.width+x].population = rand.Intn(200)
+		w.area[y*w.width+x].population = rand.Intn(upperPopCap / 2)
 	}
 }
 
@@ -49,7 +49,7 @@ func (w *HumanGrid) Update() {
 func (w *HumanGrid) Draw(pix []byte) {
 	for i, v := range w.area {
 		if v.population != 0 {
-			pix[4*i] = byte(255 * (float32(v.population) / 1000))
+			pix[4*i] = byte(200.0 * (float32(v.population) / float32(upperPopCap)))
 			pix[4*i+1] = 0
 			pix[4*i+2] = 0
 			pix[4*i+3] = 0xff
@@ -63,8 +63,8 @@ func (w *HumanGrid) Draw(pix []byte) {
 }
 
 const (
-	screenWidth  = 100
-	screenHeight = 100
+	screenWidth  = 50
+	screenHeight = 50
 )
 
 type Game struct {
@@ -92,10 +92,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 
 	g := &Game{
-		humanGrid: NewHumanGrid(screenWidth, screenHeight, int((screenWidth*screenHeight)/50)),
+		humanGrid: NewHumanGrid(screenWidth, screenHeight, int((screenWidth*screenHeight)/10)),
 	}
 
-	ebiten.SetWindowSize(screenWidth*4, screenHeight*4)
+	ebiten.SetWindowSize(screenWidth*8, screenHeight*8)
 	ebiten.SetWindowTitle("Anexi")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)

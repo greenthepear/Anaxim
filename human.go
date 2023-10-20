@@ -5,6 +5,9 @@ import (
 	"math/rand"
 )
 
+var upperPopCap int = 100000
+var baseGrowthRate float32 = 0.05
+
 type humanCell struct {
 	population int
 }
@@ -33,7 +36,7 @@ func getNeighborsCoordinates(world []humanCell, width, height, x, y int) []coord
 }
 
 func getNeighborsCoordinatesMoore(world []humanCell, width, height, x, y int) []coordinate {
-	coords := make([]coordinate, 0, 9)
+	coords := make([]coordinate, 0, 8)
 	for j := -1; j <= 1; j++ {
 		for i := -1; i <= 1; i++ {
 			if i == 0 && j == 0 {
@@ -45,20 +48,25 @@ func getNeighborsCoordinatesMoore(world []humanCell, width, height, x, y int) []
 				continue
 			}
 			//cells = append(cells, world[y2*width+x2])
+
+			fmt.Printf("Coordinate for [%d,%d] found at [%d,%d]\t%d\n", x, y, x2, y2, y2*width+x2)
 			coords = append(coords, coordinate{x2, y2})
 		}
 	}
 	return coords
 }
 func (w *HumanGrid) updatePopGrowth() {
+	worldpop := 0
 	for y := 0; y < w.height; y++ {
 		for x := 0; x < w.width; x++ {
 			pop := w.area[y*w.width+x].population
-			if pop != 0 && pop < 1000 {
-				w.area[y*w.width+x].population += int(rand.Float32() * 0.5 * float32(pop))
+			worldpop += pop
+			if pop > 2 && pop < upperPopCap {
+				w.area[y*w.width+x].population += int(rand.Float32() * baseGrowthRate * float32(pop))
 			}
 		}
 	}
+	fmt.Printf("World Population: %d\n", worldpop)
 }
 
 func (w *HumanGrid) updateMigration() {
@@ -70,27 +78,32 @@ func (w *HumanGrid) updateMigration() {
 		for x := 0; x < width; x++ {
 			shortMainCoord := y*width + x
 			pop := w.area[shortMainCoord].population
+			if pop < 0 {
+				fmt.Printf("Something has went terribly wrong...")
+			}
 			worldpop += pop
 			if pop < 20 {
 				next[shortMainCoord] = w.area[shortMainCoord]
 				continue
 			}
+			next[shortMainCoord].population = pop
 			for _, c := range getNeighborsCoordinatesMoore(w.area, width, height, x, y) {
 				mainCellPopulation := w.area[shortMainCoord].population
 
 				//fmt.Printf("x: %d\ty: %d\n", c.x, c.y)
 				shortNeighborCoord := c.y*width + c.x
 				currentNeighborCell := w.area[shortNeighborCoord]
-				if currentNeighborCell.population < 1000 {
+				if currentNeighborCell.population < upperPopCap {
 					peopleMoving := rand.Intn(int(float32(mainCellPopulation) * 0.05))
-					//fmt.Printf("Moving %d people...\n", peopleMoving)
+					fmt.Printf("Moving %d people...\n", peopleMoving)
 					next[shortNeighborCoord].population += peopleMoving
 					next[shortMainCoord].population -= peopleMoving
-					w.area[shortMainCoord].population -= peopleMoving
+					//w.area[shortMainCoord].population -= peopleMoving
 				}
 			}
+			//fmt.Printf("! Population after migration: %d\n", next[shortMainCoord].population)
 		}
 	}
-	fmt.Printf("World Population: %d\n", worldpop)
+	//fmt.Printf("World Population: %d\n", worldpop)
 	w.area = next
 }
