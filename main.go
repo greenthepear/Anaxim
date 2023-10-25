@@ -13,39 +13,6 @@ func init() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-// HumanGrid represents the game state
-type HumanGrid struct {
-	area   []humanCell
-	width  int
-	height int
-}
-
-// NewHumanGrid creates a new humanGrid
-func NewHumanGrid(width, height int, maxInitLiveCells int) *HumanGrid {
-	w := &HumanGrid{
-		area:   make([]humanCell, width*height),
-		width:  width,
-		height: height,
-	}
-	w.init(maxInitLiveCells)
-	return w
-}
-
-// init inits humanGrid with a random population
-func (w *HumanGrid) init(maxLiveCells int) {
-	for i := 0; i < maxLiveCells; i++ {
-		x := rand.Intn(w.width)
-		y := rand.Intn(w.height)
-		w.area[y*w.width+x].population = rand.Intn(upperPopCap / 2)
-	}
-}
-
-// Update game state by one tick.
-func (w *HumanGrid) Update() {
-	w.updatePopGrowth()
-	w.updateMigration()
-}
-
 // Draw paints current game state.
 func (w *HumanGrid) Draw(pix []byte) {
 	for i, v := range w.area {
