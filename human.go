@@ -49,7 +49,7 @@ func getNeighborsCoordinatesMoore(world []humanCell, width, height, x, y int) []
 			}
 			//cells = append(cells, world[y2*width+x2])
 
-			fmt.Printf("Coordinate for [%d,%d] found at [%d,%d]\t%d\n", x, y, x2, y2, y2*width+x2)
+			//fmt.Printf("Coordinate for [%d,%d] found at [%d,%d]\t%d\n", x, y, x2, y2, y2*width+x2)
 			coords = append(coords, coordinate{x2, y2})
 		}
 	}
@@ -72,7 +72,7 @@ func (w *HumanGrid) updatePopGrowth() {
 func (w *HumanGrid) updateMigration() {
 	width := w.width
 	height := w.height
-	next := make([]humanCell, width*height)
+	changes := make([]humanCell, width*height)
 	worldpop := 0
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
@@ -83,21 +83,27 @@ func (w *HumanGrid) updateMigration() {
 			}
 			worldpop += pop
 			if pop < 20 {
-				next[shortMainCoord] = w.area[shortMainCoord]
+				changes[shortMainCoord] = w.area[shortMainCoord]
 				continue
 			}
-			next[shortMainCoord].population = pop
+
 			for _, c := range getNeighborsCoordinatesMoore(w.area, width, height, x, y) {
-				mainCellPopulation := w.area[shortMainCoord].population
+				mainCellPopulation :=
+					w.area[shortMainCoord].population - changes[shortMainCoord].population
 
 				//fmt.Printf("x: %d\ty: %d\n", c.x, c.y)
 				shortNeighborCoord := c.y*width + c.x
 				currentNeighborCell := w.area[shortNeighborCoord]
 				if currentNeighborCell.population < upperPopCap {
-					peopleMoving := rand.Intn(int(float32(mainCellPopulation) * 0.05))
-					fmt.Printf("Moving %d people...\n", peopleMoving)
-					next[shortNeighborCoord].population += peopleMoving
-					next[shortMainCoord].population -= peopleMoving
+					cc := int(float32(mainCellPopulation) * 0.05)
+					//fmt.Printf("cc: %d\n", cc)
+					if cc <= 0 { //bad
+						continue
+					}
+					peopleMoving := rand.Intn(cc)
+					//fmt.Printf("Moving %d people...\n", peopleMoving)
+					changes[shortNeighborCoord].population += peopleMoving
+					changes[shortMainCoord].population -= peopleMoving
 					//w.area[shortMainCoord].population -= peopleMoving
 				}
 			}
@@ -105,5 +111,9 @@ func (w *HumanGrid) updateMigration() {
 		}
 	}
 	//fmt.Printf("World Population: %d\n", worldpop)
-	w.area = next
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			w.area[y*width+x].population += changes[y*width+x].population
+		}
+	}
 }

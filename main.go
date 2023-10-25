@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math"
 	"math/rand"
 	"time"
 
@@ -49,7 +50,7 @@ func (w *HumanGrid) Update() {
 func (w *HumanGrid) Draw(pix []byte) {
 	for i, v := range w.area {
 		if v.population != 0 {
-			pix[4*i] = byte(200.0 * (float32(v.population) / float32(upperPopCap)))
+			pix[4*i] = byte(254.0 * (math.Min(1.0, float64(v.population)/float64(upperPopCap))))
 			pix[4*i+1] = 0
 			pix[4*i+2] = 0
 			pix[4*i+3] = 0xff
@@ -63,8 +64,8 @@ func (w *HumanGrid) Draw(pix []byte) {
 }
 
 const (
-	screenWidth  = 50
-	screenHeight = 50
+	screenWidth  = 320
+	screenHeight = 180
 )
 
 type Game struct {
@@ -92,10 +93,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func main() {
 
 	g := &Game{
-		humanGrid: NewHumanGrid(screenWidth, screenHeight, int((screenWidth*screenHeight)/10)),
+		humanGrid: NewHumanGrid(screenWidth, screenHeight, int((screenWidth*screenHeight)/1000)),
 	}
 
-	ebiten.SetWindowSize(screenWidth*8, screenHeight*8)
+	ebiten.SetWindowSize(screenWidth*4, screenHeight*4)
 	ebiten.SetWindowTitle("Anexi")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
