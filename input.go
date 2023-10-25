@@ -12,7 +12,7 @@ func (w HumanGrid) cellAt(x int, y int) humanCell {
 
 func (w HumanGrid) genCellInfoAtCursor() string {
 	cursorX, cursorY := ebiten.CursorPosition()
-	if cursorX >= 0 && cursorX <= w.width && cursorY >= 0 && cursorY <= w.height {
+	if cursorX >= 0 && cursorX < w.width && cursorY >= 0 && cursorY < w.height {
 		pop := w.cellAt(cursorX, cursorY).population
 		return fmt.Sprintf("[%d,%d]: %d", cursorX, cursorY, pop)
 	}
