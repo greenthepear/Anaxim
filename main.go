@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 func init() {
@@ -42,6 +43,7 @@ type Game struct {
 
 func (g *Game) Update() error {
 	g.humanGrid.Update()
+
 	return nil
 }
 
@@ -51,6 +53,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	g.humanGrid.Draw(g.pixels)
 	screen.WritePixels(g.pixels)
+	ebitenutil.DebugPrint(screen, g.humanGrid.genCellInfoAtCursor())
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -64,7 +67,7 @@ func main() {
 	}
 
 	ebiten.SetWindowSize(screenWidth*4, screenHeight*4)
-	ebiten.SetWindowTitle("Anexi")
+	ebiten.SetWindowTitle("Anaxi")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
