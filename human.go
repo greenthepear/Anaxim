@@ -1,3 +1,4 @@
+// Processing cellular automata of human cells
 package main
 
 import (
