@@ -28,16 +28,18 @@ type HumanGrid struct {
 }
 
 // init inits humanGrid with a random population
-func (w *HumanGrid) init(maxLiveCells int) {
+func (w *HumanGrid) init(m mapGrid, maxLiveCells int) {
 	for i := 0; i < maxLiveCells; i++ {
 		x := rand.Intn(w.width)
 		y := rand.Intn(w.height)
-		w.area[y*w.width+x].population = rand.Intn(upperPopCap / 2)
+		if m.area[y*w.width+x].isLand {
+			w.area[y*w.width+x].population = rand.Intn(upperPopCap / 2)
+		}
 	}
 }
 
 // NewHumanGrid creates a new humanGrid
-func NewHumanGrid(width, height int, maxInitLiveCells int) *HumanGrid {
+func NewHumanGrid(m mapGrid, width, height int, maxInitLiveCells int) *HumanGrid {
 	w := &HumanGrid{
 		area:        make([]humanCell, width*height),
 		areaChanges: make([]humanCell, width*height),
@@ -45,7 +47,7 @@ func NewHumanGrid(width, height int, maxInitLiveCells int) *HumanGrid {
 		height:      height,
 		generation:  0,
 	}
-	w.init(maxInitLiveCells)
+	w.init(m, maxInitLiveCells)
 	return w
 }
 
@@ -94,7 +96,7 @@ func (w *HumanGrid) updatePopGrowthAt(x int, y int) {
 	}
 }
 
-func (w *HumanGrid) updateMigrationAt(x int, y int) {
+func (w *HumanGrid) updateMigrationAt(m mapGrid, x, y int) {
 	width := w.width
 	height := w.height
 	shortMainCoord := y*width + x
@@ -114,7 +116,7 @@ func (w *HumanGrid) updateMigrationAt(x int, y int) {
 		//fmt.Printf("x: %d\ty: %d\n", c.x, c.y)
 		shortNeighborCoord := c.y*width + c.x
 		currentNeighborCell := w.area[shortNeighborCoord]
-		if currentNeighborCell.population < upperPopCap {
+		if currentNeighborCell.population < upperPopCap && m.area[shortNeighborCoord].isLand {
 			cc := int(float32(mainCellPopulation) * 0.05)
 			if cc <= 0 { //bad
 				continue
@@ -143,13 +145,13 @@ func (w *HumanGrid) applyChangesArea() {
 }
 
 // Update game state by one tick.
-func (w *HumanGrid) Update() {
+func (w *HumanGrid) Update(m mapGrid) {
 	width := w.width
 	height := w.height
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			w.updatePopGrowthAt(x, y)
-			w.updateMigrationAt(x, y)
+			w.updateMigrationAt(m, x, y)
 		}
 	}
 	w.applyChangesArea()

@@ -14,26 +14,28 @@ func init() {
 	initFonts()
 }
 
-const (
+var (
 	screenWidth  = 320
 	screenHeight = 180
 )
 
 type Game struct {
+	mapGrid   *mapGrid
 	humanGrid *HumanGrid
 	pixels    []byte
 }
 
 func (g *Game) Update() error {
-	g.humanGrid.Update()
-
+	g.humanGrid.Update(*g.mapGrid)
 	return nil
 }
 
 func main() {
+	preloadedMap := NewMapGrid("./defmap.png") //Needed to set screen size
 
 	g := &Game{
-		humanGrid: NewHumanGrid(screenWidth, screenHeight, int((screenWidth*screenHeight)/1000)),
+		mapGrid:   preloadedMap,
+		humanGrid: NewHumanGrid(*preloadedMap, screenWidth, screenHeight, int((screenWidth*screenHeight)/1000)),
 	}
 
 	ebiten.SetWindowSize(screenWidth*4, screenHeight*4)
