@@ -27,6 +27,7 @@ type Game struct {
 
 func (g *Game) Update() error {
 	g.humanGrid.Update(*g.mapGrid)
+	g.humanGrid.clickDebug()
 	return nil
 }
 

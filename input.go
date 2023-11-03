@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 func (w HumanGrid) cellAt(x int, y int) humanCell {
@@ -18,4 +19,13 @@ func (w HumanGrid) genCellInfoAtCursor() string {
 		return fmt.Sprintf("[%d,%d]:\n%d", cursorX, cursorY, pop)
 	}
 	return ""
+}
+
+func (w HumanGrid) clickDebug() {
+	cursorX, cursorY := ebiten.CursorPosition()
+	if cursorX >= 0 && cursorX < screenWidth && cursorY >= 0 && cursorY < screenHeight {
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
+			fmt.Printf("\n[%d,%d] neighbors: %v\n", cursorX, cursorY, w.getNeighborsForMigration(cursorX, cursorY, true))
+		}
+	}
 }
