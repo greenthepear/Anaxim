@@ -176,7 +176,7 @@ func (w *HumanGrid) applyChangesArea() {
 }
 
 // Update game state by one tick.
-func (w *HumanGrid) Update(m mapGrid) {
+func (w *HumanGrid) Update() {
 	width := w.width
 	height := w.height
 	for y := 0; y < height; y++ {

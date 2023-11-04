@@ -10,7 +10,7 @@ type mapGrid struct {
 }
 
 func NewMapGrid(path string) *mapGrid {
-	file := loadImage(path)
+	file := loadFile(path)
 
 	colorSlice, width, height := getPixels(file)
 

@@ -36,17 +36,30 @@ func getPixels(file *os.File) ([]color.Color, int, int) {
 	return r, width, height
 }
 
-func loadImage(path string) *os.File {
-	image.RegisterFormat("png", "png", png.Decode, png.DecodeConfig)
+func loadFile(path string) *os.File {
 	file, err := os.Open(path)
 	if err != nil {
-		log.Fatal("Image not found")
+		log.Fatal("File not found")
 	}
 
 	return file
 }
 
-func initFonts() {
+func loadImage(path string) image.Image {
+	file := loadFile(path)
+	img, err := png.Decode(file)
+	file.Close()
+	if err != nil {
+		log.Fatalf("loadImage() | %v", err)
+	}
+	return img
+}
+
+func loadEbitenImage(path string) *ebiten.Image { //TODO: use ebitenutil for this
+	return ebiten.NewImageFromImage(loadImage(path))
+}
+
+func initFonts() { //global, used in init
 	tt, err := opentype.Parse(fonts.PressStart2P_ttf)
 	if err != nil {
 		log.Fatal(err)
@@ -61,6 +74,15 @@ func initFonts() {
 	}
 }
 
+func makeImagesMap() map[string]*ebiten.Image {
+	images := make(map[string]*ebiten.Image)
+	images["speed0"] = loadEbitenImage("./Graphics/speed0.png")
+	images["speed1"] = loadEbitenImage("./Graphics/speed1.png")
+	images["speed2"] = loadEbitenImage("./Graphics/speed2.png")
+	images["speed3"] = loadEbitenImage("./Graphics/speed3.png")
+	return images
+}
+
 func (g *Game) DrawGrid(pix []byte) {
 	for i, v := range g.humanGrid.area {
 		var landValue byte = 0
@@ -72,9 +94,14 @@ func (g *Game) DrawGrid(pix []byte) {
 		red := byte(254.0 * (math.Min(1.0, popRange)))
 		pix[4*i] = red
 		pix[4*i+1] = landValue - red
-		pix[4*i+2] = 0
+		pix[4*i+2] = 100 - landValue
 		pix[4*i+3] = 0
 	}
+}
+
+func drawTextWithDropShadow(destination *ebiten.Image, contents string, face font.Face, x, y int, clr color.Color) {
+	text.Draw(destination, contents, face, x+1, y+1, color.Black)
+	text.Draw(destination, contents, face, x, y, clr)
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -84,9 +111,25 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.DrawGrid(g.pixels)
 	screen.WritePixels(g.pixels)
 
-	text.Draw(screen, g.humanGrid.genCellInfoAtCursor(), fontPressStart, 1, 10, color.White)
+	drawTextWithDropShadow(screen, g.humanGrid.genCellInfoAtCursor(), fontPressStart, 1, 10, color.White)
 	performanceInfoMsg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\n", ebiten.ActualTPS(), ebiten.ActualFPS())
-	text.Draw(screen, performanceInfoMsg, fontPressStart, screenWidth-80, screenHeight-8, color.White)
+	drawTextWithDropShadow(screen, performanceInfoMsg, fontPressStart, screenWidth-80, screenHeight-8, color.White)
+
+	//Drawing speed controls
+	speedControlImgOp := &ebiten.DrawImageOptions{}
+	speedControlImageKeys := []string{"speed0", "speed1", "speed2", "speed3"}
+
+	var speedControlx float64 = 0
+	for i, k := range speedControlImageKeys {
+		speedControlImgOp.ColorScale.Reset()
+		speedControlImgOp.GeoM.Reset()
+		speedControlImgOp.GeoM.Translate(speedControlx, float64(screenHeight-32))
+		if int(g.speed) != i {
+			speedControlImgOp.ColorScale.Scale(0.5, 0.5, 0.5, 1)
+		}
+		screen.DrawImage(g.images[k], speedControlImgOp)
+		speedControlx += 32
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

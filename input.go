@@ -29,3 +29,13 @@ func (w HumanGrid) clickDebug() {
 		}
 	}
 }
+
+func (g *Game) handleSpeedControls() {
+	cursorX, cursorY := ebiten.CursorPosition()
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
+		if cursorY > screenHeight-32 && cursorX < 128 {
+			g.speed = Speed(cursorX / 32)
+		}
+	}
+
+}
