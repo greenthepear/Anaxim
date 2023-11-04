@@ -5,7 +5,7 @@
 Can be built with `go build`. If you're not on Windows follow the [Ebitengine installation guide](https://ebitengine.org/en/documents/install.html?os=linux).
 
 Planned features:
-- Underlying world map
+- ~~Underlying world map~~
 - Tribes and countries
 - Wars and diplomacy
 - Speed/pause controls

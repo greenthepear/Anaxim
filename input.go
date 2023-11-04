@@ -23,7 +23,7 @@ func (w HumanGrid) genCellInfoAtCursor() string {
 
 func (w HumanGrid) clickDebug() {
 	cursorX, cursorY := ebiten.CursorPosition()
-	if cursorX >= 0 && cursorX < screenWidth && cursorY >= 0 && cursorY < screenHeight {
+	if cursorX >= 0 && cursorX < screenWidth-1 && cursorY >= 0 && cursorY < screenHeight-1 {
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
 			fmt.Printf("\n[%d,%d] neighbors: %v\n", cursorX, cursorY, w.getNeighborsForMigration(cursorX, cursorY, true))
 		}
@@ -33,8 +33,12 @@ func (w HumanGrid) clickDebug() {
 func (g *Game) handleSpeedControls() {
 	cursorX, cursorY := ebiten.CursorPosition()
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
-		if cursorY > screenHeight-32 && cursorX < 128 {
-			g.speed = Speed(cursorX / 32)
+		if cursorY > screenHeight-16 && cursorX < 70 {
+			s := int(cursorX / 16)
+			if s > 3 {
+				s = 3
+			}
+			g.speed = Speed(s)
 		}
 	}
 

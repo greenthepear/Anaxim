@@ -3,14 +3,12 @@ package main
 
 import (
 	"fmt"
-	"image"
 	"image/color"
-	"image/png"
 	"log"
 	"math"
-	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
@@ -19,44 +17,20 @@ import (
 
 var fontPressStart font.Face
 
-func getPixels(file *os.File) ([]color.Color, int, int) {
-	img, err := png.Decode(file)
+func getPixels(path string) ([]color.Color, int, int) {
+	_, img, err := ebitenutil.NewImageFromFile(path)
 	if err != nil {
-		log.Fatalf("getPixels() | %v", err)
+		log.Fatal(err)
 	}
-	file.Close()
+
 	width, height := img.Bounds().Max.X, img.Bounds().Max.Y
 	r := make([]color.Color, width*height)
-
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			r[y*width+x] = img.At(x, y)
 		}
 	}
 	return r, width, height
-}
-
-func loadFile(path string) *os.File {
-	file, err := os.Open(path)
-	if err != nil {
-		log.Fatal("File not found")
-	}
-
-	return file
-}
-
-func loadImage(path string) image.Image {
-	file := loadFile(path)
-	img, err := png.Decode(file)
-	file.Close()
-	if err != nil {
-		log.Fatalf("loadImage() | %v", err)
-	}
-	return img
-}
-
-func loadEbitenImage(path string) *ebiten.Image { //TODO: use ebitenutil for this
-	return ebiten.NewImageFromImage(loadImage(path))
 }
 
 func initFonts() { //global, used in init
@@ -76,10 +50,14 @@ func initFonts() { //global, used in init
 
 func makeImagesMap() map[string]*ebiten.Image {
 	images := make(map[string]*ebiten.Image)
-	images["speed0"] = loadEbitenImage("./Graphics/speed0.png")
-	images["speed1"] = loadEbitenImage("./Graphics/speed1.png")
-	images["speed2"] = loadEbitenImage("./Graphics/speed2.png")
-	images["speed3"] = loadEbitenImage("./Graphics/speed3.png")
+	imageNames := []string{"speed0", "speed1", "speed2", "speed3"}
+	for _, n := range imageNames {
+		img, _, err := ebitenutil.NewImageFromFile(fmt.Sprintf("./Graphics/%v.png", n))
+		if err != nil {
+			log.Fatal(err)
+		}
+		images[n] = img
+	}
 	return images
 }
 
@@ -104,6 +82,23 @@ func drawTextWithDropShadow(destination *ebiten.Image, contents string, face fon
 	text.Draw(destination, contents, face, x, y, clr)
 }
 
+func (g Game) drawSpeedControls(screen *ebiten.Image) {
+	speedControlImgOp := &ebiten.DrawImageOptions{}
+	speedControlImageKeys := []string{"speed0", "speed1", "speed2", "speed3"}
+
+	var speedControlx float64 = 0
+	for i, k := range speedControlImageKeys {
+		speedControlImgOp.ColorScale.Reset()
+		speedControlImgOp.GeoM.Reset()
+		speedControlImgOp.GeoM.Translate(speedControlx, float64(screenHeight-16))
+		if int(g.speed) != i {
+			speedControlImgOp.ColorScale.Scale(0.5, 0.5, 0.5, 1)
+		}
+		screen.DrawImage(g.images[k], speedControlImgOp)
+		speedControlx += 16
+	}
+}
+
 func (g *Game) Draw(screen *ebiten.Image) {
 	if g.pixels == nil {
 		g.pixels = make([]byte, screenWidth*screenHeight*4)
@@ -115,21 +110,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	performanceInfoMsg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\n", ebiten.ActualTPS(), ebiten.ActualFPS())
 	drawTextWithDropShadow(screen, performanceInfoMsg, fontPressStart, screenWidth-80, screenHeight-8, color.White)
 
-	//Drawing speed controls
-	speedControlImgOp := &ebiten.DrawImageOptions{}
-	speedControlImageKeys := []string{"speed0", "speed1", "speed2", "speed3"}
-
-	var speedControlx float64 = 0
-	for i, k := range speedControlImageKeys {
-		speedControlImgOp.ColorScale.Reset()
-		speedControlImgOp.GeoM.Reset()
-		speedControlImgOp.GeoM.Translate(speedControlx, float64(screenHeight-32))
-		if int(g.speed) != i {
-			speedControlImgOp.ColorScale.Scale(0.5, 0.5, 0.5, 1)
-		}
-		screen.DrawImage(g.images[k], speedControlImgOp)
-		speedControlx += 32
-	}
+	g.drawSpeedControls(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

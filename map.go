@@ -10,9 +10,7 @@ type mapGrid struct {
 }
 
 func NewMapGrid(path string) *mapGrid {
-	file := loadFile(path)
-
-	colorSlice, width, height := getPixels(file)
+	colorSlice, width, height := getPixels(path)
 
 	//Set screen size
 	screenWidth, screenHeight = width, height
