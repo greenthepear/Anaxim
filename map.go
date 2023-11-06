@@ -36,10 +36,10 @@ func NewMapGrid(path string) *mapGrid {
 		for x := 0; x < imgWidth; x++ {
 			red, green, blue, _ := colorSlice[y*imgWidth+x].RGBA()
 			if blue == 0xffff && red == 0 && green == 0 {
-				mGrid.area[y*imgWidth+x].isLand = false
+				mGrid.CellAt(x, y).isLand = false
 			} else {
-				mGrid.area[y*imgWidth+x].isLand = true
-				mGrid.area[y*imgWidth+x].habitability = calcHabitability(red)
+				mGrid.CellAt(x, y).isLand = true
+				mGrid.CellAt(x, y).habitability = calcHabitability(red)
 			}
 		}
 	}

@@ -10,8 +10,10 @@ var upperPopCap int = 100000
 var baseGrowthRate float32 = 0.05
 
 type humanCell struct {
-	population int
-	//IDEA: make a slice of every neighbors coordinate and precompute that
+	population         int
+	x                  int
+	y                  int
+	adjacentCellCoords []coordinate
 }
 
 type coordinate struct {
@@ -27,35 +29,6 @@ type HumanGrid struct {
 	height      int
 	generation  uint64
 	areaWorld   *mapGrid
-}
-
-// init inits humanGrid with a random population
-func (w *HumanGrid) init(maxLiveCells int) {
-	for i := 0; i < maxLiveCells; i++ {
-		x := rand.Intn(w.width)
-		y := rand.Intn(w.height)
-		if w.areaWorld.area[y*w.width+x].isLand {
-			w.area[y*w.width+x].population = rand.Intn(upperPopCap / 2)
-		}
-	}
-}
-
-// NewHumanGrid creates a new humanGrid
-func NewHumanGrid(m mapGrid, width, height int, maxInitLiveCells int) *HumanGrid {
-	w := &HumanGrid{
-		area:        make([]humanCell, width*height),
-		areaChanges: make([]humanCell, width*height),
-		width:       width,
-		height:      height,
-		generation:  0,
-		areaWorld:   &m,
-	}
-	w.init(maxInitLiveCells)
-	return w
-}
-
-func (w *HumanGrid) CellAt(x int, y int) *humanCell { //TODO: use this instead of the y*width+x
-	return &w.area[y*w.width+x]
 }
 
 func getNeighborsCoordinates(world []humanCell, width, height, x, y int) []coordinate {
@@ -75,6 +48,53 @@ func getNeighborsCoordinates(world []humanCell, width, height, x, y int) []coord
 	return coords
 }
 
+func (c *humanCell) GenNeighbors(world *HumanGrid) {
+	c.adjacentCellCoords = getNeighborsCoordinates(world.area, world.width, world.height, c.x, c.y)
+}
+
+// init inits humanGrid with a random population
+func (w *HumanGrid) init(maxLiveCells int) {
+	width := w.width
+	height := w.height
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			w.area[y*width+x].x, w.area[y*width+x].y = x, y
+			w.area[y*width+x].GenNeighbors(w)
+		}
+	}
+
+	//Populate randomly
+	for i := 0; i < maxLiveCells; i++ {
+		x := rand.Intn(width)
+		y := rand.Intn(height)
+		if w.areaWorld.area[y*width+x].isLand {
+			w.area[y*width+x].population = rand.Intn(upperPopCap / 2)
+		}
+	}
+}
+
+// NewHumanGrid creates a new HumanGrid
+func NewHumanGrid(m mapGrid, width, height int, maxInitLiveCells int) *HumanGrid {
+	w := &HumanGrid{
+		area:        make([]humanCell, width*height),
+		areaChanges: make([]humanCell, width*height),
+		width:       width,
+		height:      height,
+		generation:  0,
+		areaWorld:   &m,
+	}
+	w.init(maxInitLiveCells)
+	return w
+}
+
+func (w *HumanGrid) CellAt(x int, y int) *humanCell {
+	return &w.area[y*w.width+x]
+}
+
+func (w *HumanGrid) ChangesCellAt(x int, y int) *humanCell {
+	return &w.areaChanges[y*w.width+x]
+}
+
 //lint:ignore U1000 Might switch
 func getNeighborsCoordinatesMoore(world []humanCell, width, height, x, y int) []coordinate {
 	coords := make([]coordinate, 0, 8)
@@ -88,9 +108,7 @@ func getNeighborsCoordinatesMoore(world []humanCell, width, height, x, y int) []
 			if x2 < 0 || y2 < 0 || width <= x2 || height <= y2 {
 				continue
 			}
-			//cells = append(cells, world[y2*width+x2])
 
-			//fmt.Printf("Coordinate for [%d,%d] found at [%d,%d]\t%d\n", x, y, x2, y2, y2*width+x2)
 			coords = append(coords, coordinate{x2, y2})
 		}
 	}
@@ -98,22 +116,18 @@ func getNeighborsCoordinatesMoore(world []humanCell, width, height, x, y int) []
 }
 
 func (w *HumanGrid) getNeighborsForMigration(x, y int, printDebugInfo bool) []coordinate {
-	gridNeighbors := getNeighborsCoordinates(w.area, w.width, w.height, x, y)
+	validNeighbors := make([]coordinate, 0, 4)
 
-	validNeighbors := make([]coordinate, 0, 9)
-	//mainCellPopulation := w.area[y*w.width+x].population
-	for _, n := range gridNeighbors {
-		nCoord := n.y*w.width + n.x
-
+	for _, n := range w.CellAt(x, y).adjacentCellCoords {
 		//TODO: Make this nicer or just remove the debug
-		if w.area[nCoord].population > upperPopCap {
+		if w.CellAt(n.x, n.y).population > upperPopCap {
 			if printDebugInfo {
 				fmt.Printf("Neighbor at [%d,%d] skipped: OVERPOP\n", n.x, n.y)
 			}
 			continue
 		}
 
-		if !w.areaWorld.area[nCoord].isLand {
+		if !w.areaWorld.CellAt(n.x, n.y).isLand {
 			if printDebugInfo {
 				fmt.Printf("Neighbor at [%d,%d] skipped: NOTLAND\n", n.x, n.y)
 			}
@@ -126,22 +140,20 @@ func (w *HumanGrid) getNeighborsForMigration(x, y int, printDebugInfo bool) []co
 }
 
 func (w *HumanGrid) updatePopGrowthAt(x, y int) {
-	pop := w.area[y*w.width+x].population
+	pop := w.CellAt(x, y).population
 	if pop > 2 && pop < upperPopCap {
-		w.areaChanges[y*w.width+x].population +=
+		w.ChangesCellAt(x, y).population +=
 			int((w.areaWorld.CellAt(x, y).habitability - rand.Float32()) * baseGrowthRate * float32(pop))
 	}
 }
 
 func (w *HumanGrid) updateMigrationAt(x, y int) {
-	width := w.width
-	shortMainCoord := y*width + x
-	pop := w.area[shortMainCoord].population
+	pop := w.CellAt(x, y).population
 	if pop < 0 {
 		fmt.Printf("Something has went terribly wrong...\n")
 	}
 	if pop < 20 {
-		w.areaChanges[shortMainCoord].population += w.area[shortMainCoord].population
+		w.CellAt(x, y).population += w.CellAt(x, y).population
 		return
 	}
 
@@ -150,7 +162,7 @@ func (w *HumanGrid) updateMigrationAt(x, y int) {
 		return
 	}
 	chosenDirection := rand.Intn(len(validNeighbors))
-	chosenDirectionCoord := validNeighbors[chosenDirection].y*width + validNeighbors[chosenDirection].x
+	chosenDirectionX, chosenDirectionY := validNeighbors[chosenDirection].x, validNeighbors[chosenDirection].y
 
 	cc := int(float32(pop) * 0.05)
 
@@ -159,8 +171,8 @@ func (w *HumanGrid) updateMigrationAt(x, y int) {
 	}
 
 	peopleMoving := rand.Intn(cc)
-	w.areaChanges[chosenDirectionCoord].population += peopleMoving
-	w.areaChanges[shortMainCoord].population -= peopleMoving
+	w.ChangesCellAt(chosenDirectionX, chosenDirectionY).population += peopleMoving
+	w.ChangesCellAt(x, y).population -= peopleMoving
 }
 
 func (w *HumanGrid) applyChangesArea() {
@@ -169,10 +181,9 @@ func (w *HumanGrid) applyChangesArea() {
 	worldpop := 0
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			coord := y*width + x
-			w.area[coord].population += w.areaChanges[coord].population
-			w.areaChanges[coord].population = 0
-			worldpop += w.area[coord].population
+			w.CellAt(x, y).population += w.ChangesCellAt(x, y).population
+			w.ChangesCellAt(x, y).population = 0
+			worldpop += w.CellAt(x, y).population
 		}
 	}
 	if w.generation%64 == 0 {
