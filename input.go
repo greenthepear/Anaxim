@@ -8,14 +8,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
-func (w HumanGrid) cellAt(x int, y int) humanCell {
-	return w.area[y*w.width+x]
-}
-
 func (w HumanGrid) genCellInfoAtCursor() string {
 	cursorX, cursorY := ebiten.CursorPosition()
 	if cursorX >= 0 && cursorX < w.width && cursorY >= 0 && cursorY < w.height {
-		pop := w.cellAt(cursorX, cursorY).population
+		pop := w.CellAt(cursorX, cursorY).population
 		return fmt.Sprintf("[%d,%d]:\n%d", cursorX, cursorY, pop)
 	}
 	return ""

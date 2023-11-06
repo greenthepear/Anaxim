@@ -13,6 +13,7 @@ import (
 
 func init() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
+	image.RegisterFormat("png", "png", png.Decode, png.DecodeConfig)
 	initFonts()
 }
 
@@ -61,7 +62,6 @@ func (g *Game) Update() error {
 }
 
 func main() {
-	image.RegisterFormat("png", "png", png.Decode, png.DecodeConfig)
 
 	preloadedMap := NewMapGrid("./defmap.png") //Needed to set screen size
 

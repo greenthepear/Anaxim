@@ -2,31 +2,47 @@
 package main
 
 type mapCell struct {
-	isLand bool
+	isLand       bool
+	habitability float32
 }
 
 type mapGrid struct {
-	area []mapCell
+	area   []mapCell
+	width  int
+	height int
+}
+
+func (m *mapGrid) CellAt(x, y int) *mapCell {
+	return &m.area[y*m.width+x]
+}
+
+func calcHabitability(colorLevel uint32) float32 {
+	return float32(0xffff-colorLevel) / 0xffff
 }
 
 func NewMapGrid(path string) *mapGrid {
-	colorSlice, width, height := getPixels(path)
+	colorSlice, imgWidth, imgHeight := getPixels(path)
 
 	//Set screen size
-	screenWidth, screenHeight = width, height
+	screenWidth, screenHeight = imgWidth, imgHeight
 
-	w := &mapGrid{
-		area: make([]mapCell, width*height),
+	mGrid := &mapGrid{
+		area:   make([]mapCell, imgWidth*imgHeight),
+		width:  imgWidth,
+		height: imgHeight,
 	}
 
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			_, green, blue, _ := colorSlice[y*width+x].RGBA()
-			if green > blue {
-				w.area[y*width+x].isLand = true
+	for y := 0; y < imgHeight; y++ {
+		for x := 0; x < imgWidth; x++ {
+			red, green, blue, _ := colorSlice[y*imgWidth+x].RGBA()
+			if blue == 0xffff && red == 0 && green == 0 {
+				mGrid.area[y*imgWidth+x].isLand = false
+			} else {
+				mGrid.area[y*imgWidth+x].isLand = true
+				mGrid.area[y*imgWidth+x].habitability = calcHabitability(red)
 			}
 		}
 	}
 
-	return w
+	return mGrid
 }

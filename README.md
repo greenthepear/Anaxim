@@ -8,7 +8,7 @@ Planned features:
 - ~~Underlying world map~~
 - Tribes and countries
 - Wars and diplomacy
-- Speed/pause controls
+- ~~Speed/pause controls~~
 - GPU acceleration with OpenCL (scary!)
 - Interactivity
 - Stats and graphs!

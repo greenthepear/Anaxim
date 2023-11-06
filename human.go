@@ -54,6 +54,10 @@ func NewHumanGrid(m mapGrid, width, height int, maxInitLiveCells int) *HumanGrid
 	return w
 }
 
+func (w *HumanGrid) CellAt(x int, y int) *humanCell { //TODO: use this instead of the y*width+x
+	return &w.area[y*w.width+x]
+}
+
 func getNeighborsCoordinates(world []humanCell, width, height, x, y int) []coordinate {
 	coords := make([]coordinate, 0, 4)
 	if y < height {
@@ -124,7 +128,8 @@ func (w *HumanGrid) getNeighborsForMigration(x, y int, printDebugInfo bool) []co
 func (w *HumanGrid) updatePopGrowthAt(x, y int) {
 	pop := w.area[y*w.width+x].population
 	if pop > 2 && pop < upperPopCap {
-		w.areaChanges[y*w.width+x].population += int(rand.Float32() * baseGrowthRate * float32(pop))
+		w.areaChanges[y*w.width+x].population +=
+			int((w.areaWorld.CellAt(x, y).habitability - rand.Float32()) * baseGrowthRate * float32(pop))
 	}
 }
 
