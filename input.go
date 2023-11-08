@@ -19,9 +19,11 @@ func (w HumanGrid) genCellInfoAtCursor() string {
 
 func (w HumanGrid) clickDebug() {
 	cursorX, cursorY := ebiten.CursorPosition()
-	if cursorX >= 0 && cursorX < screenWidth-1 && cursorY >= 0 && cursorY < screenHeight-1 {
+	if cursorX >= 0 && cursorX < screenWidth && cursorY >= 0 && cursorY < screenHeight {
+		c := w.CellAt(cursorX, cursorY)
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
-			fmt.Printf("\n[%d,%d] neighbors: %v\n", cursorX, cursorY, w.getNeighborsForMigration(cursorX, cursorY, true))
+			fmt.Printf("* Click at [%d,%d]:\nHuman: %v\nMap: %v\n*\n",
+				cursorX, cursorY, c, w.CorrWorldCellOf(c))
 		}
 	}
 }
