@@ -13,3 +13,4 @@ Planned features:
 - Interactivity
 - Stats and graphs!
 - Custom maps (and random maps?)
+- Map modes

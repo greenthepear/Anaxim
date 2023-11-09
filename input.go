@@ -23,7 +23,7 @@ func (w HumanGrid) clickDebug() {
 		c := w.CellAt(cursorX, cursorY)
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
 			fmt.Printf("* Click at [%d,%d]:\nHuman: %v\nMap: %v\n*\n",
-				cursorX, cursorY, c, w.CorrWorldCellOf(c))
+				cursorX, cursorY, c, w.CorrMapCellOf(c))
 		}
 	}
 }

@@ -69,6 +69,9 @@ func (g *Game) DrawGrid(pix []byte) {
 		}
 
 		popRange := float64(v.population) / float64(upperPopCap)
+		if popRange != 0 { //To see places where there is ANY population
+			popRange += 0.1
+		}
 		red := byte(254.0 * (math.Min(1.0, popRange)))
 		pix[4*i] = red
 		pix[4*i+1] = landValue - red

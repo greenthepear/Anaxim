@@ -6,9 +6,9 @@ import (
 	"math/rand"
 )
 
-var upperPopCap int = 100000
-var baseGrowthRate float32 = 0.02
-var baseMigrationRate float32 = 0.05
+var upperPopCap int = 100000         //Cap of the population growth or population suitable for migration
+var baseGrowthRate float32 = 0.02    //Max growth rate per tick
+var baseMigrationRate float32 = 0.05 //Max portion of people migrating from one cell per tick
 
 type humanCell struct {
 	x             int
@@ -44,14 +44,17 @@ func (w *HumanGrid) MapCellAt(x, y int) *mapCell {
 	return &w.areaWorld.area[y*w.width+x]
 }
 
+// Get corresponding `areaChanges` cell of `area` cell
 func (w *HumanGrid) CorrChangesCellOf(cell *humanCell) *humanCell {
 	return w.ChangesCellAt(cell.x, cell.y)
 }
 
-func (w *HumanGrid) CorrWorldCellOf(cell *humanCell) *mapCell {
+// Get corresponding `areaWorld.area` cell of `area` cell
+func (w *HumanGrid) CorrMapCellOf(cell *humanCell) *mapCell {
 	return w.MapCellAt(cell.x, cell.y)
 }
 
+// Get coordinates of neighboring cells up down left right of [x,y] within bounds
 func getNeighborsCoordinates(width, height, x, y int) []coordinate {
 	coords := make([]coordinate, 0, 4)
 	if y < height-1 {
@@ -69,6 +72,7 @@ func getNeighborsCoordinates(width, height, x, y int) []coordinate {
 	return coords
 }
 
+// Generate pointers to neighbors of cell c in world
 func (c *humanCell) GenNeighbors(world *HumanGrid) {
 	adjCoords := getNeighborsCoordinates(world.width, world.height, c.x, c.y)
 	c.adjacentCells = make([]*humanCell, 0, len(adjCoords))
@@ -77,12 +81,15 @@ func (c *humanCell) GenNeighbors(world *HumanGrid) {
 	}
 }
 
+// Intialize cells by giving them their coordinates and generating neighbor pointers
 func (c *humanCell) initCell(x, y int, world *HumanGrid) {
 	c.x, c.y = x, y
 	c.GenNeighbors(world)
 }
 
-// init inits humanGrid with a random population
+// init inits humanGrid by initing cells and placing with a population in random spots
+//
+// maxLiveCells sets the number of "rolls" for the random spots
 func (w *HumanGrid) init(maxLiveCells int) {
 	width := w.width
 	height := w.height
@@ -138,6 +145,8 @@ func getNeighborsCoordinatesMoore(world []humanCell, width, height, x, y int) []
 	return coords
 }
 
+// Gets pointers to neighbor cells of `cell` valid for migration:
+// ones that are land and have small enough population (under upperGrowthCap).
 func (w *HumanGrid) getNeighborsForMigration(cell *humanCell, printDebugInfo bool) []*humanCell {
 	validNeighbors := make([]*humanCell, 0, 4)
 
@@ -150,7 +159,7 @@ func (w *HumanGrid) getNeighborsForMigration(cell *humanCell, printDebugInfo boo
 			continue
 		}
 
-		if !w.CorrWorldCellOf(n).isLand {
+		if !w.CorrMapCellOf(n).isLand {
 			if printDebugInfo {
 				fmt.Printf("Neighbor at [%d,%d] skipped: NOTLAND\n", n.x, n.y)
 			}
@@ -162,30 +171,54 @@ func (w *HumanGrid) getNeighborsForMigration(cell *humanCell, printDebugInfo boo
 	return validNeighbors
 }
 
+// Calculates the random population growth of a cell, taking into account the habitability and baseGrowthRate
 func (w *HumanGrid) calcPopChange(cell *humanCell) int {
-	return int((w.CorrWorldCellOf(cell).habitability - rand.Float32()) * baseGrowthRate * float32(cell.population))
+	hab := w.CorrMapCellOf(cell).habitability
+	change := int((hab - rand.Float32()) * baseGrowthRate * float32(cell.population))
+
+	//At low enough populations, changes become too small to be picked up with integers,
+	//so I added this to either kill off tiny pops on bad hab or kickstart growth on good hab.
+	//This has a negligible effect on populations bigger than like 50, and that pop is what
+	//this is meant for.
+	if hab < 0.5 {
+		change -= 2
+	} else {
+		change += 2
+	}
+	return change
 }
 
+// Applies population growth (calcPopChange()) of a cell into areaChanges
 func (w *HumanGrid) updatePopGrowthOf(cell *humanCell) {
 	pop := cell.population
-	if pop > 2 && pop < upperPopCap {
-		popChange := w.calcPopChange(cell)
-		if popChange >= pop {
-			popChange = pop
+	if pop < upperPopCap {
+		if pop > 2 {
+			popChange := w.calcPopChange(cell)
+			if popChange >= pop {
+				popChange = pop
+			}
+			w.CorrChangesCellOf(cell).population += popChange
+		} else {
+			w.CorrChangesCellOf(cell).population -= pop
 		}
-		w.CorrChangesCellOf(cell).population += popChange
 	}
 }
 
+// Moves random population of cell in (one) random direction, applies that to areaChanges
 func (w *HumanGrid) updateMigrationOf(cell *humanCell) {
 	pop := cell.population
-	corrChangesCell := w.CorrChangesCellOf(cell)
-	if pop < 0 {
-		fmt.Printf("Something has went terribly wrong...\n")
-	}
-	if pop < 20 {
-		corrChangesCell.population += cell.population
+	if pop <= 20 {
 		return
+	}
+
+	corrChangesCell := w.CorrChangesCellOf(cell)
+	//To avoid having to apply the changes grid before doing migrations we check if the pop has
+	//changed negatively, to limit migrations.
+	if cccp := corrChangesCell.population; cccp < 0 {
+		pop -= cccp
+		if pop <= 0 {
+			return
+		}
 	}
 
 	validNeighbors := w.getNeighborsForMigration(cell, false)
@@ -207,6 +240,7 @@ func (w *HumanGrid) updateMigrationOf(cell *humanCell) {
 	corrChangesCell.population -= peopleMoving
 }
 
+// Applies areaChanges into area by matrix addition. Resets areaChanges. Also prints world population
 func (w *HumanGrid) applyChangesArea() {
 	width := w.width
 	height := w.height
@@ -223,7 +257,7 @@ func (w *HumanGrid) applyChangesArea() {
 	}
 }
 
-// Update game state by one tick.
+// Update grid state by one tick. First pop growth, then migrations
 func (w *HumanGrid) Update() {
 
 	//Sinusoidal pop growth for fun
@@ -241,3 +275,5 @@ func (w *HumanGrid) Update() {
 	w.applyChangesArea()
 	w.generation++
 }
+
+// Within cells interlinked
