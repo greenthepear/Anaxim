@@ -6,7 +6,7 @@ Currently the "game" only features a basic migration simulation on a map (defmap
 Tested on Linux (Ubuntu/Mint) and Windows 10. If you want to try building and running it on [other platforms Ebitenegine supports](https://github.com/hajimehoshi/ebiten#features) godspeed to you, but there is only mouse support right now.
 
 # Building
-If you're not no Windows, check out the [Ebitengine installation guide](https://ebitengine.org/en/documents/install.html?os=linux) to make sure you have the C compiler and dependencies for it. If yes and you have git and Go (at least 1.21.2):
+If you're not on Windows, check out the [Ebitengine installation guide](https://ebitengine.org/en/documents/install.html?os=linux) to make sure you have the C compiler and dependencies for it. If yes and you have git and Go (at least 1.21.2):
 
     git clone https://github.com/greenthepear/Anaxi.git
     cd Anaxi
@@ -14,12 +14,12 @@ If you're not no Windows, check out the [Ebitengine installation guide](https://
 
 # Running
 
-You can set flags from the command-line when launching Anaxi. You can check them out with `./Anaxi -h`
+Optionally, you can set flags from the command-line when launching Anaxi. They can be checked `./Anaxi -h`
 
     -mappath string
         Path to the map PNG file. (default "./defmap.png")
     -prerun int
-    	Generations to simulate before launching, min 50
+        Generations to simulate before launching, min 50
 
 So for example `./Anaxi -mappath=./defmapDEBUG.png -prerun=20000` will prerun the simulation for 20,000 generations on a map generated from defmapDEBUG.png.
 
