@@ -1,7 +1,9 @@
-// Main ebiten stuff, Update() is here
+// Main ebiten stuff, main() and Update() is here
 package main
 
 import (
+	"flag"
+	"fmt"
 	"image"
 	"image/png"
 	"log"
@@ -38,6 +40,18 @@ type Game struct {
 	images       map[string]*ebiten.Image
 	speed        Speed
 	frameCounter uint64
+	biggestPop   int
+}
+
+func (g *Game) Prerun(generations int) {
+	for g.humanGrid.generation < generations {
+		g.humanGrid.Update()
+		gen := g.humanGrid.generation
+		if gen%(generations/50) == 0 {
+			fmt.Printf("Prerunning simulation... %d/%d (%d%%)\n",
+				gen, generations, int(100*(float32(gen)/float32(generations))))
+		}
+	}
 }
 
 func (g *Game) Update() error {
@@ -49,7 +63,7 @@ func (g *Game) Update() error {
 			g.humanGrid.Update()
 		}
 	case Faster:
-		if g.frameCounter%10 == 0 {
+		if g.frameCounter%5 == 0 {
 			g.humanGrid.Update()
 		}
 	case Fastest:
@@ -62,15 +76,26 @@ func (g *Game) Update() error {
 }
 
 func main() {
+	mapPath := flag.String("mappath", "./defmap.png", "Path to the map PNG file.")
+	prerunGenerations := flag.Int("prerun", 0, "Generations to simulate before launching, min 50")
+	flag.Parse()
 
-	preloadedMap := NewMapGrid("./defmap.png") //Needed to set screen size
+	preloadedMap, err := NewMapGrid(*mapPath) //Needed to set screen size
+	if err != nil {
+		log.Fatalf("Error creating MapGrid: %v", err)
+	}
 
 	g := &Game{
 		mapGrid:      preloadedMap,
-		humanGrid:    NewHumanGrid(*preloadedMap, screenWidth, screenHeight, int((screenWidth*screenHeight)/1000)),
+		humanGrid:    NewHumanGrid(*preloadedMap, screenWidth, screenHeight, (screenWidth*screenHeight)/5000),
 		images:       makeImagesMap(),
-		speed:        Faster,
+		speed:        Paused,
 		frameCounter: 0,
+		biggestPop:   upperPopCap,
+	}
+
+	if *prerunGenerations > 49 {
+		g.Prerun(*prerunGenerations)
 	}
 
 	ebiten.SetWindowSize(screenWidth*4, screenHeight*4)

@@ -3,18 +3,23 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 )
 
 var upperPopCap int = 100000         //Cap of the population growth or population suitable for migration
-var baseGrowthRate float32 = 0.02    //Max growth rate per tick
-var baseMigrationRate float32 = 0.05 //Max portion of people migrating from one cell per tick
+var baseGrowthRate float64 = 0.01    //Max growth rate per tick
+var baseMigrationRate float64 = 0.05 //Max portion of people migrating from one cell per tick
+
+var devGrowthChance float64 = 0.001 //Chance dev of human cell with increase, scaled by population range
+var devGrowthScale float64 = 0.8
 
 type humanCell struct {
 	x             int
 	y             int
 	adjacentCells []*humanCell
 	population    int
+	development   float64
 }
 
 type coordinate struct {
@@ -45,12 +50,12 @@ func (w *HumanGrid) MapCellAt(x, y int) *mapCell {
 }
 
 // Get corresponding `areaChanges` cell of `area` cell
-func (w *HumanGrid) CorrChangesCellOf(cell *humanCell) *humanCell {
+func (w *HumanGrid) ChangesCellOf(cell *humanCell) *humanCell {
 	return w.ChangesCellAt(cell.x, cell.y)
 }
 
 // Get corresponding `areaWorld.area` cell of `area` cell
-func (w *HumanGrid) CorrMapCellOf(cell *humanCell) *mapCell {
+func (w *HumanGrid) MapCellOf(cell *humanCell) *mapCell {
 	return w.MapCellAt(cell.x, cell.y)
 }
 
@@ -82,8 +87,9 @@ func (c *humanCell) GenNeighbors(world *HumanGrid) {
 }
 
 // Intialize cells by giving them their coordinates and generating neighbor pointers
-func (c *humanCell) initCell(x, y int, world *HumanGrid) {
+func (c *humanCell) initCell(x, y int, world *HumanGrid, startingDev float64) {
 	c.x, c.y = x, y
+	c.development = startingDev
 	c.GenNeighbors(world)
 }
 
@@ -95,8 +101,8 @@ func (w *HumanGrid) init(maxLiveCells int) {
 	height := w.height
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			w.area[y*width+x].initCell(x, y, w)
-			w.areaChanges[y*width+x].initCell(x, y, w)
+			w.area[y*width+x].initCell(x, y, w, 1.0)
+			w.areaChanges[y*width+x].initCell(x, y, w, 0.0)
 		}
 	}
 
@@ -159,7 +165,7 @@ func (w *HumanGrid) getNeighborsForMigration(cell *humanCell, printDebugInfo boo
 			continue
 		}
 
-		if !w.CorrMapCellOf(n).isLand {
+		if !w.MapCellOf(n).isLand {
 			if printDebugInfo {
 				fmt.Printf("Neighbor at [%d,%d] skipped: NOTLAND\n", n.x, n.y)
 			}
@@ -171,36 +177,52 @@ func (w *HumanGrid) getNeighborsForMigration(cell *humanCell, printDebugInfo boo
 	return validNeighbors
 }
 
+// https://en.wikipedia.org/wiki/Logistic_function#In_ecology:_modeling_population_growth
+func logisticFunction(r, P, K float64) float64 {
+	return r * P * (1 - P/K)
+}
+
 // Calculates the random population growth of a cell, taking into account the habitability and baseGrowthRate
 func (w *HumanGrid) calcPopChange(cell *humanCell) int {
-	hab := w.CorrMapCellOf(cell).habitability
-	change := int((hab - rand.Float32()) * baseGrowthRate * float32(cell.population))
-
-	//At low enough populations, changes become too small to be picked up with integers,
-	//so I added this to either kill off tiny pops on bad hab or kickstart growth on good hab.
-	//This has a negligible effect on populations bigger than like 50, and that pop is what
-	//this is meant for.
-	if hab < 0.5 {
-		change -= 2
-	} else {
-		change += 2
+	hab := w.MapCellOf(cell).habitability
+	if hab == 0 {
+		return 0
 	}
-	return change
+
+	//Logistic function with K being this capacity
+	K := hab * float64(upperPopCap) * cell.development
+	change := logisticFunction(float64(baseGrowthRate), float64(cell.population), K) * rand.Float64()
+
+	return int(change)
+}
+
+func (w *HumanGrid) calcDevChance(cell *humanCell) float64 {
+	dev := cell.development
+	var limiter float64 = 1
+	if dev < 1.5 { //Delay starting development
+		limiter = 0.01
+	}
+	K := w.MapCellOf(cell).habitability * dev * float64(upperPopCap)
+	return math.Min(1.0, float64(cell.population)/K) * devGrowthChance * limiter
 }
 
 // Applies population growth (calcPopChange()) of a cell into areaChanges
-func (w *HumanGrid) updatePopGrowthOf(cell *humanCell) {
+func (w *HumanGrid) updatePopAndDevGrowthOf(cell *humanCell) {
 	pop := cell.population
-	if pop < upperPopCap {
-		if pop > 2 {
-			popChange := w.calcPopChange(cell)
-			if popChange >= pop {
-				popChange = pop
-			}
-			w.CorrChangesCellOf(cell).population += popChange
-		} else {
-			w.CorrChangesCellOf(cell).population -= pop
+
+	if pop > 2 {
+		popChange := w.calcPopChange(cell)
+		if popChange >= pop {
+			popChange = pop
 		}
+		w.ChangesCellOf(cell).population += popChange
+
+		//Roll for growth rate
+		if rand.Float64() < w.calcDevChance(cell) {
+			w.ChangesCellOf(cell).development += rand.Float64() * devGrowthScale
+		}
+	} else {
+		w.ChangesCellOf(cell).population -= pop
 	}
 }
 
@@ -211,7 +233,7 @@ func (w *HumanGrid) updateMigrationOf(cell *humanCell) {
 		return
 	}
 
-	corrChangesCell := w.CorrChangesCellOf(cell)
+	corrChangesCell := w.ChangesCellOf(cell)
 	//To avoid having to apply the changes grid before doing migrations we check if the pop has
 	//changed negatively, to limit migrations.
 	if cccp := corrChangesCell.population; cccp < 0 {
@@ -226,7 +248,7 @@ func (w *HumanGrid) updateMigrationOf(cell *humanCell) {
 		return
 	}
 
-	cc := int(float32(pop) * baseMigrationRate)
+	cc := int(float64(pop) * baseMigrationRate)
 	if cc <= 0 {
 		return
 	}
@@ -242,19 +264,29 @@ func (w *HumanGrid) updateMigrationOf(cell *humanCell) {
 
 // Applies areaChanges into area by matrix addition. Resets areaChanges. Also prints world population
 func (w *HumanGrid) applyChangesArea() {
-	width := w.width
-	height := w.height
 	worldpop := 0
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			w.CellAt(x, y).population += w.ChangesCellAt(x, y).population
-			w.ChangesCellAt(x, y).population = 0
-			worldpop += w.CellAt(x, y).population
+	for i := range w.area {
+		c := &w.area[i]
+		corrC := &w.areaChanges[i]
+
+		c.population += corrC.population
+		c.development += corrC.development
+
+		corrC.population = 0
+		corrC.development = 0.0
+
+		worldpop += c.population
+
+		if c.population < 0 {
+			fmt.Printf("Cell [%d,%d] has negative population!!\n", c.x, c.y)
+			c.population = 0 //Hack, figure out what is happening in the first place
 		}
 	}
-	if w.generation%64 == 0 {
-		fmt.Printf("Gen %d | World Population: %d\n", w.generation, worldpop)
-	}
+	/*
+		if w.generation%64 == 0 {
+			fmt.Printf("Gen %d | World Population: %d\n", w.generation, worldpop)
+		}
+	*/
 }
 
 // Update grid state by one tick. First pop growth, then migrations
@@ -263,14 +295,10 @@ func (w *HumanGrid) Update() {
 	//Sinusoidal pop growth for fun
 	//baseGrowthRate = float32((math.Sin(float64(w.generation) / 250)) * 0.05)
 
-	width := w.width
-	height := w.height
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			c := w.CellAt(x, y)
-			w.updatePopGrowthOf(c)
-			w.updateMigrationOf(c)
-		}
+	for i := range w.area {
+		cell := &w.area[i]
+		w.updatePopAndDevGrowthOf(cell)
+		w.updateMigrationOf(cell)
 	}
 	w.applyChangesArea()
 	w.generation++

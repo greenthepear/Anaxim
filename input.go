@@ -11,8 +11,11 @@ import (
 func (w HumanGrid) genCellInfoAtCursor() string {
 	cursorX, cursorY := ebiten.CursorPosition()
 	if cursorX >= 0 && cursorX < w.width && cursorY >= 0 && cursorY < w.height {
-		pop := w.CellAt(cursorX, cursorY).population
-		return fmt.Sprintf("[%d,%d]:\n%d", cursorX, cursorY, pop)
+		cell := w.CellAt(cursorX, cursorY)
+		if w.MapCellOf(cell).isLand {
+			return fmt.Sprintf("[%d,%d]:\npop: %d\ndev: %0.4f", cursorX, cursorY, cell.population, cell.development)
+		}
+		return fmt.Sprintf("[%d,%d]:\nWater", cursorX, cursorY)
 	}
 	return ""
 }
@@ -23,7 +26,7 @@ func (w HumanGrid) clickDebug() {
 		c := w.CellAt(cursorX, cursorY)
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
 			fmt.Printf("* Click at [%d,%d]:\nHuman: %v\nMap: %v\n*\n",
-				cursorX, cursorY, c, w.CorrMapCellOf(c))
+				cursorX, cursorY, c, w.MapCellOf(c))
 		}
 	}
 }

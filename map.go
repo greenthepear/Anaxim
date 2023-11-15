@@ -3,7 +3,7 @@ package main
 
 type mapCell struct {
 	isLand       bool
-	habitability float32
+	habitability float64
 }
 
 type mapGrid struct {
@@ -17,13 +17,16 @@ func (m *mapGrid) CellAt(x, y int) *mapCell {
 	return &m.area[y*m.width+x]
 }
 
-func calcHabitability(colorLevel uint32) float32 {
-	return float32(0xffff-colorLevel) / 0xffff
+func calcHabitability(colorLevel uint32) float64 {
+	return float64(0xffff-colorLevel) / 0xffff
 }
 
 // Creates the mapGrid from a .png image under `path`
-func NewMapGrid(path string) *mapGrid {
-	colorSlice, imgWidth, imgHeight := getPixels(path)
+func NewMapGrid(path string) (*mapGrid, error) {
+	colorSlice, imgWidth, imgHeight, err := getPixels(path)
+	if err != nil {
+		return nil, err
+	}
 
 	//Set screen size
 	screenWidth, screenHeight = imgWidth, imgHeight
@@ -54,5 +57,5 @@ func NewMapGrid(path string) *mapGrid {
 		}
 	}
 
-	return mGrid
+	return mGrid, nil
 }

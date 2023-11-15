@@ -17,10 +17,10 @@ import (
 
 var fontPressStart font.Face
 
-func getPixels(path string) ([]color.Color, int, int) {
+func getPixels(path string) ([]color.Color, int, int, error) {
 	_, img, err := ebitenutil.NewImageFromFile(path)
 	if err != nil {
-		log.Fatal(err)
+		return nil, 0, 0, err
 	}
 
 	width, height := img.Bounds().Max.X, img.Bounds().Max.Y
@@ -30,7 +30,7 @@ func getPixels(path string) ([]color.Color, int, int) {
 			r[y*width+x] = img.At(x, y)
 		}
 	}
-	return r, width, height
+	return r, width, height, nil
 }
 
 func initFonts() { //global, used in init
@@ -62,13 +62,14 @@ func makeImagesMap() map[string]*ebiten.Image {
 }
 
 func (g *Game) DrawGrid(pix []byte) {
+	maxPop := g.biggestPop
 	for i, v := range g.humanGrid.area {
 		var landValue byte = 0
 		if g.mapGrid.area[i].isLand {
 			landValue = 255
 		}
 
-		popRange := float64(v.population) / float64(upperPopCap)
+		popRange := float64(v.population) / float64(maxPop)
 		if popRange != 0 { //To see places where there is ANY population
 			popRange += 0.1
 		}
@@ -77,7 +78,12 @@ func (g *Game) DrawGrid(pix []byte) {
 		pix[4*i+1] = landValue - red
 		pix[4*i+2] = 100 - landValue
 		pix[4*i+3] = 0
+
+		if v.population > maxPop {
+			maxPop = v.population
+		}
 	}
+	g.biggestPop = maxPop
 }
 
 func drawTextWithDropShadow(destination *ebiten.Image, contents string, face font.Face, x, y int, clr color.Color) {
