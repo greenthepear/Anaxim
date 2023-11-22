@@ -1,6 +1,12 @@
 // Map handles the underlying map grid, but not the image itself or drawing it
 package main
 
+import (
+	"image"
+	"image/png"
+	"os"
+)
+
 type mapCell struct {
 	isLand       bool
 	habitability float64
@@ -21,15 +27,30 @@ func calcHabitability(colorLevel uint32) float64 {
 	return float64(0xffff-colorLevel) / 0xffff
 }
 
-// Creates the mapGrid from a .png image under `path`
-func NewMapGrid(path string) (*mapGrid, error) {
-	colorSlice, imgWidth, imgHeight, err := getPixels(path)
+func loadImage(path string) (image.Image, error) {
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 
+	img, err := png.Decode(file)
+	defer file.Close()
+	if err != nil {
+		return nil, err
+	}
+	return img, nil
+}
+
+// Creates the mapGrid from a .png image under `path`
+func NewMapGrid(path string) (*mapGrid, error) {
+	img, err := loadImage(path)
+	if err != nil {
+		return nil, err
+	}
+	imgWidth, imgHeight := img.Bounds().Max.X, img.Bounds().Max.Y
+
 	//Set screen size
-	screenWidth, screenHeight = imgWidth, imgHeight
+	mapWidth, mapHeight = imgWidth, imgHeight
 
 	mGrid := &mapGrid{
 		area:   make([]mapCell, imgWidth*imgHeight),
@@ -39,7 +60,7 @@ func NewMapGrid(path string) (*mapGrid, error) {
 
 	for y := 0; y < imgHeight; y++ {
 		for x := 0; x < imgWidth; x++ {
-			red, green, blue, _ := colorSlice[y*imgWidth+x].RGBA()
+			red, green, blue, _ := img.At(x, y).RGBA()
 			mc := mGrid.CellAt(x, y)
 			if blue == 0xffff && red == 0 && green == 0 { //RGB of [255, 0, 0] means water
 				mc.isLand = false

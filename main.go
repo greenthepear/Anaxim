@@ -10,18 +10,19 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 )
 
 func init() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	image.RegisterFormat("png", "png", png.Decode, png.DecodeConfig)
-	initFonts()
 }
 
-var (
-	screenWidth  = 320
-	screenHeight = 180
+var ( //set by NewMapGrid
+	mapWidth  = 0
+	mapHeight = 0
 )
 
 type Speed int
@@ -33,20 +34,25 @@ const (
 	Fastest
 )
 
-type Game struct {
-	mapGrid      *mapGrid
-	humanGrid    *HumanGrid
-	pixels       []byte
-	images       map[string]*ebiten.Image
-	speed        Speed
-	frameCounter uint64
-	biggestPop   int
+type Sim struct {
+	mapGrid    *mapGrid
+	humanGrid  *HumanGrid
+	biggestPop int
 }
 
-func (g *Game) Prerun(generations int) {
-	for g.humanGrid.generation < generations {
-		g.humanGrid.Update()
-		gen := g.humanGrid.generation
+type Anaxi struct {
+	simulation   *Sim
+	mapImage     image.Image
+	mapCanvas    *canvas.Raster
+	speed        Speed
+	speedTimes   map[Speed]uint64
+	frameCounter uint64
+}
+
+func (s *Sim) Prerun(generations int) {
+	for s.humanGrid.generation < generations {
+		s.humanGrid.Update()
+		gen := s.humanGrid.generation
 		if gen%(generations/50) == 0 {
 			fmt.Printf("Prerunning simulation... %d/%d (%d%%)\n",
 				gen, generations, int(100*(float32(gen)/float32(generations))))
@@ -54,25 +60,59 @@ func (g *Game) Prerun(generations int) {
 	}
 }
 
-func (g *Game) Update() error {
-	switch g.speed {
-	case Paused:
-		//Pass
-	case Slow:
-		if g.frameCounter%60 == 0 {
-			g.humanGrid.Update()
-		}
-	case Faster:
-		if g.frameCounter%5 == 0 {
-			g.humanGrid.Update()
-		}
-	case Fastest:
-		g.humanGrid.Update()
-	}
-	g.handleSpeedControls()
-	g.humanGrid.clickDebug()
-	g.frameCounter++
+func (s *Sim) Update() error {
+	s.humanGrid.Update()
 	return nil
+}
+
+func NewAnaxi(s *Sim) *Anaxi {
+	ar := Anaxi{
+		simulation: s,
+		mapImage:   GenGridImage(s),
+		speed:      Fastest,
+		speedTimes: map[Speed]uint64{
+			Slow:   60,
+			Faster: 10,
+		},
+	}
+	ar.mapCanvas = canvas.NewRaster(ar.draw)
+	ar.mapCanvas.ScaleMode = canvas.ImageScalePixels
+
+	return &ar
+}
+
+func (a *Anaxi) Update() {
+	err := a.simulation.Update()
+	if err != nil {
+		log.Fatalf("Simulation error: %v", err)
+	}
+	a.updateGridImage()
+	canvas.Refresh(a.mapCanvas)
+}
+
+func (a *Anaxi) animate() { //TODO: There's gotta be a way to use a ticker instead of the frame counter things
+	go func() {
+		tick := time.NewTicker(time.Second / 60)
+
+		for range tick.C {
+			fc := a.frameCounter
+			switch a.speed {
+			case Paused:
+				continue
+			case Slow:
+				if fc%a.speedTimes[Slow] != 0 {
+					continue
+				}
+			case Faster:
+				if fc%a.speedTimes[Faster] != 0 {
+					continue
+				}
+			case Fastest:
+				//Pass
+			}
+			a.Update()
+		}
+	}()
 }
 
 func main() {
@@ -85,22 +125,26 @@ func main() {
 		log.Fatalf("Error creating MapGrid: %v", err)
 	}
 
-	g := &Game{
-		mapGrid:      preloadedMap,
-		humanGrid:    NewHumanGrid(*preloadedMap, screenWidth, screenHeight, (screenWidth*screenHeight)/5000),
-		images:       makeImagesMap(),
-		speed:        Paused,
-		frameCounter: 0,
-		biggestPop:   upperPopCap,
+	s := &Sim{
+		mapGrid:    preloadedMap,
+		humanGrid:  NewHumanGrid(*preloadedMap, mapWidth, mapHeight, (mapWidth*mapHeight)/5000),
+		biggestPop: upperPopCap,
 	}
 
 	if *prerunGenerations > 49 {
-		g.Prerun(*prerunGenerations)
+		s.Prerun(*prerunGenerations)
 	}
 
-	ebiten.SetWindowSize(screenWidth*4, screenHeight*4)
-	ebiten.SetWindowTitle("Anaxi")
-	if err := ebiten.RunGame(g); err != nil {
-		log.Fatal(err)
-	}
+	ar := NewAnaxi(s)
+
+	a := app.New()
+	w := a.NewWindow("Anaxi")
+
+	ar.animate()
+
+	w.SetContent(ar.mapCanvas)
+
+	w.Resize(fyne.NewSize(float32(mapWidth*2), float32(mapHeight*2)))
+
+	w.ShowAndRun()
 }
