@@ -13,6 +13,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/widget"
 )
 
 func init() {
@@ -41,12 +42,15 @@ type Sim struct {
 }
 
 type Anaxi struct {
+	widget.BaseWidget
+
 	simulation   *Sim
 	mapImage     image.Image
 	mapCanvas    *canvas.Raster
 	speed        Speed
 	speedTimes   map[Speed]uint64
 	frameCounter uint64
+	speedButtons []*widget.Button
 }
 
 func (s *Sim) Prerun(generations int) {
@@ -69,12 +73,14 @@ func NewAnaxi(s *Sim) *Anaxi {
 	ar := Anaxi{
 		simulation: s,
 		mapImage:   GenGridImage(s),
-		speed:      Fastest,
+		speed:      Paused,
 		speedTimes: map[Speed]uint64{
 			Slow:   60,
 			Faster: 10,
 		},
+		frameCounter: 0,
 	}
+	ar.speedButtons = ar.genSpeedControls()
 	ar.mapCanvas = canvas.NewRaster(ar.draw)
 	ar.mapCanvas.ScaleMode = canvas.ImageScalePixels
 
@@ -95,6 +101,7 @@ func (a *Anaxi) animate() { //TODO: There's gotta be a way to use a ticker inste
 		tick := time.NewTicker(time.Second / 60)
 
 		for range tick.C {
+			a.frameCounter++
 			fc := a.frameCounter
 			switch a.speed {
 			case Paused:
@@ -142,7 +149,7 @@ func main() {
 
 	ar.animate()
 
-	w.SetContent(ar.mapCanvas)
+	w.SetContent(ar.buildUI())
 
 	w.Resize(fyne.NewSize(float32(mapWidth*2), float32(mapHeight*2)))
 
