@@ -32,7 +32,7 @@ const (
 	Paused Speed = iota
 	Slow
 	Faster
-	Fastest
+	Unlimited
 )
 
 type Sim struct {
@@ -48,8 +48,9 @@ type Anaxi struct {
 	mapImage     image.Image
 	mapCanvas    *canvas.Raster
 	speed        Speed
-	speedTimes   map[Speed]uint64
-	frameCounter uint64
+	speedTimes   map[Speed]time.Duration
+	lastTick     time.Time
+	lastRefresh  time.Time
 	speedButtons []*widget.Button
 }
 
@@ -70,21 +71,28 @@ func (s *Sim) Update() error {
 }
 
 func NewAnaxi(s *Sim) *Anaxi {
-	ar := Anaxi{
+	a := Anaxi{
 		simulation: s,
 		mapImage:   GenGridImage(s),
 		speed:      Paused,
-		speedTimes: map[Speed]uint64{
-			Slow:   60,
-			Faster: 10,
+		speedTimes: map[Speed]time.Duration{
+			Slow:   time.Second,
+			Faster: time.Second / 10,
 		},
-		frameCounter: 0,
+		lastTick:    time.Now(),
+		lastRefresh: time.Now(),
 	}
-	ar.speedButtons = ar.genSpeedControls()
-	ar.mapCanvas = canvas.NewRaster(ar.draw)
-	ar.mapCanvas.ScaleMode = canvas.ImageScalePixels
+	a.initUI()
 
-	return &ar
+	return &a
+}
+
+func (a *Anaxi) TimeSinceLastTick() time.Duration {
+	return time.Since(a.lastTick)
+}
+
+func (a *Anaxi) TimeSinceLastRefresh() time.Duration {
+	return time.Since(a.lastRefresh)
 }
 
 func (a *Anaxi) Update() {
@@ -92,32 +100,28 @@ func (a *Anaxi) Update() {
 	if err != nil {
 		log.Fatalf("Simulation error: %v", err)
 	}
-	a.updateGridImage()
-	canvas.Refresh(a.mapCanvas)
+
+	//Refresh image only now and then
+	if a.TimeSinceLastRefresh() > time.Second/24 {
+		canvas.Refresh(a.mapCanvas)
+		a.lastRefresh = time.Now()
+	}
+	a.lastTick = time.Now()
 }
 
-func (a *Anaxi) animate() { //TODO: There's gotta be a way to use a ticker instead of the frame counter things
+func (a *Anaxi) runSim() {
 	go func() {
-		tick := time.NewTicker(time.Second / 60)
-
-		for range tick.C {
-			a.frameCounter++
-			fc := a.frameCounter
+		for {
 			switch a.speed {
 			case Paused:
-				continue
-			case Slow:
-				if fc%a.speedTimes[Slow] != 0 {
-					continue
+				//pass
+			case Unlimited:
+				a.Update()
+			default:
+				if a.TimeSinceLastTick() > a.speedTimes[a.speed] {
+					a.Update()
 				}
-			case Faster:
-				if fc%a.speedTimes[Faster] != 0 {
-					continue
-				}
-			case Fastest:
-				//Pass
 			}
-			a.Update()
 		}
 	}()
 }
@@ -142,14 +146,14 @@ func main() {
 		s.Prerun(*prerunGenerations)
 	}
 
-	ar := NewAnaxi(s)
+	anaxi := NewAnaxi(s)
 
 	a := app.New()
 	w := a.NewWindow("Anaxi")
 
-	ar.animate()
+	anaxi.runSim()
 
-	w.SetContent(ar.buildUI())
+	w.SetContent(anaxi.buildUI())
 
 	w.Resize(fyne.NewSize(float32(mapWidth*2), float32(mapHeight*2)))
 

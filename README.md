@@ -1,7 +1,7 @@
 **Anaxi** *(named after the ancient Greek philosopher and cartographer Anaximander)* is a civilisation simulator made in ~~Ebitengine~~ Fyne, with the main goal of making a visually appealing and interactive timeline of the world using cellular automata.
 
 # State
-Currently the "Sim" only features a basic migration simulation on a map (defmap.png) where you can ~~see the population of any cell with your mouse cursor and control the speed. Clicking gives some debugging info in the terminal.~~*
+Currently the "game" only features a basic migration simulation on a map (defmap.png) where you can ~~see the population of any cell with your mouse cursor~~ and control the speed. ~~Clicking gives some debugging info in the terminal.~~*
 
 \* Migration to Fyne got rid of these functionalities for now, working on it.
 

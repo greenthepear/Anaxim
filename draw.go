@@ -1,4 +1,4 @@
-// Drawing stuff on screen, and things like setting pixels of HumanGrid, Draw() is here
+// Drawing the simulation
 package main
 
 import (
@@ -17,8 +17,9 @@ func GenGridImage(s *Sim) image.Image {
 		if s.mapGrid.area[i].isLand {
 			landValue = 255
 		}
+		pop := v.population
 
-		popRange := float64(v.population) / float64(maxPop)
+		popRange := float64(pop) / float64(maxPop)
 		if v.population != 0 { //To see places where there is ANY population
 			popRange += 0.1
 		}
@@ -31,21 +32,18 @@ func GenGridImage(s *Sim) image.Image {
 			A: 0xff,
 		}
 
-		//Fancy coordinates from index, probably slow though
+		//Fancy coordinates from index of 1d slice, probably slow though
 		img.Set(i%width, i/width, col)
 
-		if v.population > maxPop {
-			maxPop = v.population
+		if pop > maxPop {
+			maxPop = pop
 		}
 	}
 	s.biggestPop = maxPop
 	return img
 }
 
-func (a *Anaxi) draw(w, h int) image.Image {
+// Called by canvas.Refresh
+func (a *Anaxi) updateGridImage(w, h int) image.Image {
 	return GenGridImage(a.simulation)
-}
-
-func (a *Anaxi) updateGridImage() {
-	a.mapImage = GenGridImage(a.simulation)
 }
