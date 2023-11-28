@@ -30,8 +30,7 @@ type Speed int
 
 const (
 	Paused Speed = iota
-	Slow
-	Faster
+	Custom
 	Unlimited
 )
 
@@ -44,14 +43,14 @@ type Sim struct {
 type Anaxi struct {
 	widget.BaseWidget
 
-	simulation   *Sim
-	mapImage     image.Image
-	mapCanvas    *canvas.Raster
-	speed        Speed
-	speedTimes   map[Speed]time.Duration
-	lastTick     time.Time
-	lastRefresh  time.Time
-	speedButtons []*widget.Button
+	simulation     *Sim
+	mapImage       image.Image
+	mapCanvas      *canvas.Raster
+	speed          Speed
+	speedCustomTPS time.Duration
+	lastTick       time.Time
+	lastRefresh    time.Time
+	speedWidgets   *SpeedWidgets
 }
 
 func (s *Sim) Prerun(generations int) {
@@ -72,15 +71,12 @@ func (s *Sim) Update() error {
 
 func NewAnaxi(s *Sim) *Anaxi {
 	a := Anaxi{
-		simulation: s,
-		mapImage:   GenGridImage(s),
-		speed:      Paused,
-		speedTimes: map[Speed]time.Duration{
-			Slow:   time.Second,
-			Faster: time.Second / 10,
-		},
-		lastTick:    time.Now(),
-		lastRefresh: time.Now(),
+		simulation:     s,
+		mapImage:       GenGridImage(s),
+		speed:          Paused,
+		lastTick:       time.Now(),
+		lastRefresh:    time.Now(),
+		speedCustomTPS: 0,
 	}
 	a.initUI()
 
@@ -118,7 +114,7 @@ func (a *Anaxi) runSim() {
 			case Unlimited:
 				a.Update()
 			default:
-				if a.TimeSinceLastTick() > a.speedTimes[a.speed] {
+				if a.TimeSinceLastTick() > a.speedCustomTPS {
 					a.Update()
 				}
 			}
@@ -136,6 +132,8 @@ func main() {
 		log.Fatalf("Error creating MapGrid: %v", err)
 	}
 
+	a := app.New()
+
 	s := &Sim{
 		mapGrid:    preloadedMap,
 		humanGrid:  NewHumanGrid(*preloadedMap, mapWidth, mapHeight, (mapWidth*mapHeight)/5000),
@@ -148,14 +146,13 @@ func main() {
 
 	anaxi := NewAnaxi(s)
 
-	a := app.New()
 	w := a.NewWindow("Anaxi")
 
 	anaxi.runSim()
 
 	w.SetContent(anaxi.buildUI())
 
-	w.Resize(fyne.NewSize(float32(mapWidth*2), float32(mapHeight*2)))
+	w.Resize(fyne.NewSize(float32(mapWidth*2)+100, float32(mapHeight*2)+50))
 
 	w.ShowAndRun()
 }

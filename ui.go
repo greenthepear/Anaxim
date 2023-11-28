@@ -2,69 +2,121 @@
 package main
 
 import (
-	"fmt"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
-func (a *Anaxi) initUI() {
-	a.speedButtons = a.genSpeedControls()
-	a.mapCanvas = canvas.NewRaster(a.updateGridImage)
-	a.mapCanvas.ScaleMode = canvas.ImageScalePixels
+type SpeedWidgets struct {
+	widget.BaseWidget
+
+	pauseButton     *widget.Button
+	speedSlider     *widget.Slider
+	unlimitedButton *widget.Button
 }
 
-// "example" -> "[ example ]"
-func enbracked(str string) string {
-	return fmt.Sprintf("[ %s ]", str)
+func (sw *SpeedWidgets) whilePausedSetTheme() {
+	sw.pauseButton.SetIcon(theme.MediaPlayIcon())
+	sw.pauseButton.SetText("Resume")
+
+	sw.unlimitedButton.SetIcon(theme.MediaFastForwardIcon())
+	sw.unlimitedButton.SetText("Paused\nClick to enable max speed")
 }
 
-type speedSymbol struct { //Maps are iterated in random order, so I use this instead
-	spd    Speed
-	symbol string
+func (sw *SpeedWidgets) whileUnlimitedSetTheme() {
+	sw.unlimitedButton.SetIcon(theme.MediaPlayIcon())
+	sw.unlimitedButton.SetText("On max speed\nClick to enable slider speed")
+
+	sw.pauseButton.SetIcon(theme.MediaPauseIcon())
+	sw.pauseButton.SetText("Pause")
 }
 
-func (a *Anaxi) genSpeedButtonFunction(button *widget.Button, assignedSpd Speed, symbols []speedSymbol) func() {
+func (sw *SpeedWidgets) whileCustomSetTheme() {
+	sw.unlimitedButton.SetIcon(theme.MediaFastForwardIcon())
+	sw.unlimitedButton.SetText("On slider speed\nClick to enable max speed")
+
+	sw.pauseButton.SetIcon(theme.MediaPauseIcon())
+	sw.pauseButton.SetText("Pause")
+}
+
+func whenTappedPause(a *Anaxi) func() {
 	return func() {
-		a.speed = assignedSpd
-		for i, b := range a.speedButtons {
-			if i != int(a.speed) {
-				b.SetText(symbols[i].symbol)
-			} else {
-				b.SetText(enbracked(symbols[i].symbol))
-			}
+		switch {
+		case a.speed == Paused:
+			a.speed = Custom
+			a.speedWidgets.whileCustomSetTheme()
+			a.speedWidgets.speedSlider.SetValue(50.0)
+		case a.speed == Custom:
+			a.speed = Paused
+			a.speedWidgets.whilePausedSetTheme()
+		case a.speed == Unlimited:
+			a.speed = Paused
+			a.speedWidgets.whilePausedSetTheme()
 		}
 	}
 }
 
-func (a *Anaxi) genSpeedControls() []*widget.Button {
-	speedSymbols := []speedSymbol{
-		{Paused, "⏸"},
-		{Slow, "⏩"},
-		{Faster, "⏩⏩"},
-		{Unlimited, "⏩⏩⏩"},
+func whenTappedUnlimited(a *Anaxi) func() {
+	return func() {
+		switch {
+		case a.speed == Paused:
+			a.speed = Unlimited
+			a.speedWidgets.whileUnlimitedSetTheme()
+		case a.speed == Custom:
+			a.speed = Unlimited
+			a.speedWidgets.whileUnlimitedSetTheme()
+		case a.speed == Unlimited:
+			a.speed = Custom
+			a.speedWidgets.whileCustomSetTheme()
+		}
 	}
-	buttons := make([]*widget.Button, 0, len(speedSymbols))
-	var butt *widget.Button
-	for _, e := range speedSymbols {
-		butt = widget.NewButton(e.symbol, a.genSpeedButtonFunction(butt, e.spd, speedSymbols))
-		buttons = append(buttons, butt)
+}
+
+func whenSpeedSliderDragEnd(a *Anaxi) func(float64) {
+	return func(float64) {
+		val := a.speedWidgets.speedSlider.Value
+		if val == 0 {
+			a.speed = Paused
+			a.speedWidgets.whilePausedSetTheme()
+			return
+		}
+		a.speed = Custom
+		a.speedWidgets.whileCustomSetTheme()
+		a.speedCustomTPS = time.Duration(time.Second / time.Duration(val))
 	}
-	return buttons
+}
+
+func NewSpeedWidgets(a *Anaxi) *SpeedWidgets {
+	sw := &SpeedWidgets{
+		pauseButton: widget.NewButtonWithIcon(
+			"Pause", theme.MediaPauseIcon(), whenTappedPause(a)),
+		unlimitedButton: widget.NewButtonWithIcon(
+			"Paused\nClick to enable max speed", theme.MediaFastForwardIcon(), whenTappedUnlimited(a)),
+		speedSlider: widget.NewSlider(0.0, 100.0),
+	}
+
+	sw.speedSlider.Step = 5.0
+	sw.speedSlider.OnChanged = whenSpeedSliderDragEnd(a)
+
+	return sw
+}
+
+func (a *Anaxi) initUI() {
+	a.speedWidgets = NewSpeedWidgets(a)
+	a.mapCanvas = canvas.NewRaster(a.updateGridImage)
+	a.mapCanvas.ScaleMode = canvas.ImageScalePixels
 }
 
 func (a *Anaxi) buildSpeedControls() fyne.CanvasObject {
-	//Set current speed button to be visually selected
-	a.speedButtons[int(a.speed)].SetText(enbracked(a.speedButtons[int(a.speed)].Text)) //What is this, JavaScript code?
 	return container.NewGridWithColumns(
-		len(a.speedButtons),
-		//Bad. No clue why I can't just do `a.speedButtons...`
-		a.speedButtons[0],
-		a.speedButtons[1],
-		a.speedButtons[2],
-		a.speedButtons[3],
+		3,
+		a.speedWidgets.pauseButton,
+		a.speedWidgets.speedSlider,
+		a.speedWidgets.unlimitedButton,
 	)
 }
 
