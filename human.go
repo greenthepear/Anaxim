@@ -7,7 +7,7 @@ import (
 	"math/rand"
 )
 
-var upperPopCap int = 100000         //Cap of the population growth or population suitable for migration
+var upperPopCap int64 = 10000        //Cap of the population growth or population suitable for migration
 var baseGrowthRate float64 = 0.01    //Max growth rate per tick
 var baseMigrationRate float64 = 0.05 //Max portion of people migrating from one cell per tick
 
@@ -18,7 +18,7 @@ type humanCell struct {
 	x             int
 	y             int
 	adjacentCells []*humanCell
-	population    int
+	population    int64
 	development   float64
 }
 
@@ -29,12 +29,14 @@ type coordinate struct {
 
 // Human grid handles human activity
 type HumanGrid struct {
-	area        []humanCell
-	areaChanges []humanCell
-	width       int
-	height      int
-	generation  int
-	areaWorld   *mapGrid
+	area           []humanCell
+	areaChanges    []humanCell
+	width          int
+	height         int
+	generation     int
+	areaWorld      *mapGrid
+	globalPop      int64
+	biggestPopCell humanCell
 }
 
 func (w *HumanGrid) CellAt(x, y int) *humanCell {
@@ -112,7 +114,7 @@ func (w *HumanGrid) init(maxLiveCells int) {
 		y := rand.Intn(height)
 		mc := w.MapCellAt(x, y)
 		if mc.isLand {
-			w.CellAt(x, y).population = rand.Intn(upperPopCap / 2)
+			w.CellAt(x, y).population = rand.Int63n(upperPopCap / 2)
 		}
 	}
 }
@@ -120,12 +122,14 @@ func (w *HumanGrid) init(maxLiveCells int) {
 // NewHumanGrid creates a new HumanGrid
 func NewHumanGrid(m mapGrid, width, height int, maxInitLiveCells int) *HumanGrid {
 	w := &HumanGrid{
-		area:        make([]humanCell, width*height),
-		areaChanges: make([]humanCell, width*height),
-		width:       width,
-		height:      height,
-		generation:  0,
-		areaWorld:   &m,
+		area:           make([]humanCell, width*height),
+		areaChanges:    make([]humanCell, width*height),
+		width:          width,
+		height:         height,
+		generation:     0,
+		areaWorld:      &m,
+		globalPop:      0,
+		biggestPopCell: humanCell{0, 0, nil, 0, 0.0}, //Temporary
 	}
 	w.init(maxInitLiveCells)
 	return w
@@ -151,23 +155,33 @@ func getNeighborsCoordinatesMoore(world []humanCell, width, height, x, y int) []
 	return coords
 }
 
+func (w *HumanGrid) calcCapacityOfCell(cell *humanCell) float64 {
+	hab := w.MapCellOf(cell).habitability
+	if hab == 0 {
+		return 0
+	}
+
+	//Logistic function with K being capacity
+	return hab * float64(upperPopCap) * cell.development
+}
+
 // Gets pointers to neighbor cells of `cell` valid for migration:
-// ones that are land and have small enough population (under upperGrowthCap).
+// ones that are land and have small enough population (under K).
 func (w *HumanGrid) getNeighborsForMigration(cell *humanCell, printDebugInfo bool) []*humanCell {
 	validNeighbors := make([]*humanCell, 0, 4)
 
 	for _, n := range cell.adjacentCells {
-		//TODO: Make this nicer or just remove the debug
-		if n.population > upperPopCap {
-			if printDebugInfo {
-				fmt.Printf("Neighbor at [%d,%d] skipped: OVERPOP\n", n.x, n.y)
-			}
-			continue
-		}
 
 		if !w.MapCellOf(n).isLand {
 			if printDebugInfo {
 				fmt.Printf("Neighbor at [%d,%d] skipped: NOTLAND\n", n.x, n.y)
+			}
+			continue
+		}
+
+		if n.population > upperPopCap {
+			if printDebugInfo {
+				fmt.Printf("Neighbor at [%d,%d] skipped: OVERPOP\n", n.x, n.y)
 			}
 			continue
 		}
@@ -183,17 +197,14 @@ func logisticFunction(r, P, K float64) float64 {
 }
 
 // Calculates the random population growth of a cell, taking into account the habitability and baseGrowthRate
-func (w *HumanGrid) calcPopChange(cell *humanCell) int {
-	hab := w.MapCellOf(cell).habitability
-	if hab == 0 {
+func (w *HumanGrid) calcPopChange(cell *humanCell) int64 {
+	K := w.calcCapacityOfCell(cell)
+	if K == 0 {
 		return 0
 	}
 
-	//Logistic function with K being this capacity
-	K := hab * float64(upperPopCap) * cell.development
 	change := logisticFunction(float64(baseGrowthRate), float64(cell.population), K) * rand.Float64()
-
-	return int(change)
+	return int64(change)
 }
 
 func (w *HumanGrid) calcDevChance(cell *humanCell) float64 {
@@ -248,7 +259,7 @@ func (w *HumanGrid) updateMigrationOf(cell *humanCell) {
 		return
 	}
 
-	cc := int(float64(pop) * baseMigrationRate)
+	cc := int64(float64(pop) * baseMigrationRate)
 	if cc <= 0 {
 		return
 	}
@@ -257,14 +268,14 @@ func (w *HumanGrid) updateMigrationOf(cell *humanCell) {
 	chosenCell := validNeighbors[cIndex]
 	chosenChangesCell := w.ChangesCellAt(chosenCell.x, chosenCell.y)
 
-	peopleMoving := rand.Intn(cc)
+	peopleMoving := rand.Int63n(cc)
 	chosenChangesCell.population += peopleMoving
 	corrChangesCell.population -= peopleMoving
 }
 
-// Applies areaChanges into area by matrix addition. Resets areaChanges. Also prints world population
-func (w *HumanGrid) applyChangesArea() {
-	worldpop := 0
+// Applies areaChanges into area by matrix addition, resets areaChanges and updates global stats
+func (w *HumanGrid) applyChangesArea() error {
+	var worldpop int64 = 0
 	for i := range w.area {
 		c := &w.area[i]
 		corrC := &w.areaChanges[i]
@@ -277,20 +288,20 @@ func (w *HumanGrid) applyChangesArea() {
 
 		worldpop += c.population
 
+		if c.population > w.biggestPopCell.population {
+			w.biggestPopCell = *c
+		}
+
 		if c.population < 0 {
-			fmt.Printf("Cell [%d,%d] has negative population!!\n", c.x, c.y)
-			c.population = 0 //Hack, figure out what is happening in the first place
+			return fmt.Errorf("negative population @ (%d,%d): %d.\nFull cell info:%+v", c.x, c.y, c.population, c)
 		}
 	}
-	/*
-		if w.generation%64 == 0 {
-			fmt.Printf("Gen %d | World Population: %d\n", w.generation, worldpop)
-		}
-	*/
+	w.globalPop = worldpop
+	return nil
 }
 
 // Update grid state by one tick. First pop growth, then migrations
-func (w *HumanGrid) Update() {
+func (w *HumanGrid) Update() error {
 
 	//Sinusoidal pop growth for fun
 	//baseGrowthRate = float32((math.Sin(float64(w.generation) / 250)) * 0.05)
@@ -300,8 +311,10 @@ func (w *HumanGrid) Update() {
 		w.updatePopAndDevGrowthOf(cell)
 		w.updateMigrationOf(cell)
 	}
-	w.applyChangesArea()
+
+	err := w.applyChangesArea()
 	w.generation++
+	return err
 }
 
 // Within cells interlinked

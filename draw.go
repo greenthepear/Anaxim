@@ -11,7 +11,7 @@ func GenGridImage(s *Sim) image.Image {
 	width, height := s.humanGrid.width, s.humanGrid.height
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
-	maxPop := s.biggestPop
+	maxPop := s.humanGrid.biggestPopCell.population
 	for i, v := range s.humanGrid.area {
 		var landValue byte = 0
 		if s.mapGrid.area[i].isLand {
@@ -34,12 +34,7 @@ func GenGridImage(s *Sim) image.Image {
 
 		//Fancy coordinates from index of 1d slice, probably slow though
 		img.Set(i%width, i/width, col)
-
-		if pop > maxPop {
-			maxPop = pop
-		}
 	}
-	s.biggestPop = maxPop
 	return img
 }
 

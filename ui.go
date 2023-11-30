@@ -2,6 +2,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -9,6 +10,9 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 type SpeedWidgets struct {
@@ -105,12 +109,6 @@ func NewSpeedWidgets(a *Anaxi) *SpeedWidgets {
 	return sw
 }
 
-func (a *Anaxi) initUI() {
-	a.speedWidgets = NewSpeedWidgets(a)
-	a.mapCanvas = canvas.NewRaster(a.updateGridImage)
-	a.mapCanvas.ScaleMode = canvas.ImageScalePixels
-}
-
 func (a *Anaxi) buildSpeedControls() fyne.CanvasObject {
 	return container.NewGridWithColumns(
 		3,
@@ -120,6 +118,61 @@ func (a *Anaxi) buildSpeedControls() fyne.CanvasObject {
 	)
 }
 
+type LeftInfoWidgets struct {
+	widget.BaseWidget
+
+	globalStats *widget.Label
+}
+
+func (a *Anaxi) genGlobalStatsString() string {
+	biggestCell := a.simulation.humanGrid.biggestPopCell
+	printer := message.NewPrinter(language.English)
+	return printer.Sprintf(
+		`Simulation generation:		
+⏰ %d
+			
+World population:
+🌍 %d
+Biggest population:
+👨‍👩‍👦‍👦 %d @ (%d,%d)`,
+		a.simulation.humanGrid.generation,
+		a.simulation.humanGrid.globalPop,
+		biggestCell.population, biggestCell.x, biggestCell.y,
+	)
+}
+
+func NewLeftInforWidgets(a *Anaxi) *LeftInfoWidgets {
+	return &LeftInfoWidgets{
+		globalStats: widget.NewLabel(a.genGlobalStatsString() + "\n\nSimulation ready to start!"),
+	}
+}
+
+func (a *Anaxi) updateGlobalStatsWidgets() {
+	a.leftInfoWidgets.globalStats.SetText(a.genGlobalStatsString())
+}
+
+func (a *Anaxi) buildLeftInfo() fyne.CanvasObject {
+	c := container.NewGridWithRows(1, a.leftInfoWidgets.globalStats)
+	c.Resize(fyne.NewSize(400, 400))
+	return c
+}
+
+func (a *Anaxi) initUI() {
+	a.speedWidgets = NewSpeedWidgets(a)
+	a.leftInfoWidgets = NewLeftInforWidgets(a)
+	a.mapCanvas = canvas.NewRaster(a.updateGridImage)
+	a.mapCanvas.ScaleMode = canvas.ImageScalePixels
+}
+
 func (a *Anaxi) buildUI() fyne.CanvasObject {
-	return container.NewBorder(a.buildSpeedControls(), nil, nil, nil, a.mapCanvas)
+	mapCont := container.NewPadded(a.mapCanvas)
+	mapAndSpeed := container.NewBorder(
+		a.buildSpeedControls(), nil, nil, nil, mapCont)
+
+	return container.NewBorder(nil, nil, a.buildLeftInfo(), nil, mapAndSpeed)
+}
+
+func (a *Anaxi) Tapped(ev *fyne.PointEvent) {
+	fmt.Printf("Tapped %+v", ev)
+	fmt.Print(ev.Position)
 }

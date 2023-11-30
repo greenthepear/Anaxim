@@ -35,22 +35,24 @@ const (
 )
 
 type Sim struct {
-	mapGrid    *mapGrid
-	humanGrid  *HumanGrid
-	biggestPop int
+	mapGrid   *mapGrid
+	humanGrid *HumanGrid
 }
 
 type Anaxi struct {
 	widget.BaseWidget
 
-	simulation     *Sim
-	mapImage       image.Image
-	mapCanvas      *canvas.Raster
+	simulation *Sim
+	mapImage   image.Image
+	mapCanvas  *canvas.Raster
+
 	speed          Speed
 	speedCustomTPS time.Duration
 	lastTick       time.Time
 	lastRefresh    time.Time
-	speedWidgets   *SpeedWidgets
+
+	speedWidgets    *SpeedWidgets
+	leftInfoWidgets *LeftInfoWidgets
 }
 
 func (s *Sim) Prerun(generations int) {
@@ -65,12 +67,11 @@ func (s *Sim) Prerun(generations int) {
 }
 
 func (s *Sim) Update() error {
-	s.humanGrid.Update()
-	return nil
+	return s.humanGrid.Update()
 }
 
 func NewAnaxi(s *Sim) *Anaxi {
-	a := Anaxi{
+	a := &Anaxi{
 		simulation:     s,
 		mapImage:       GenGridImage(s),
 		speed:          Paused,
@@ -79,8 +80,12 @@ func NewAnaxi(s *Sim) *Anaxi {
 		speedCustomTPS: 0,
 	}
 	a.initUI()
+	a.ExtendBaseWidget(a)
+	return a
+}
 
-	return &a
+func (a *Anaxi) CreateRenderer() fyne.WidgetRenderer {
+	return widget.NewSimpleRenderer(a.buildUI())
 }
 
 func (a *Anaxi) TimeSinceLastTick() time.Duration {
@@ -97,9 +102,10 @@ func (a *Anaxi) Update() {
 		log.Fatalf("Simulation error: %v", err)
 	}
 
-	//Refresh image only now and then
+	//Refresh image and info only now and then
 	if a.TimeSinceLastRefresh() > time.Second/24 {
 		canvas.Refresh(a.mapCanvas)
+		a.updateGlobalStatsWidgets()
 		a.lastRefresh = time.Now()
 	}
 	a.lastTick = time.Now()
@@ -135,9 +141,8 @@ func main() {
 	a := app.New()
 
 	s := &Sim{
-		mapGrid:    preloadedMap,
-		humanGrid:  NewHumanGrid(*preloadedMap, mapWidth, mapHeight, (mapWidth*mapHeight)/5000),
-		biggestPop: upperPopCap,
+		mapGrid:   preloadedMap,
+		humanGrid: NewHumanGrid(*preloadedMap, mapWidth, mapHeight, (mapWidth*mapHeight)/5000),
 	}
 
 	if *prerunGenerations > 49 {
