@@ -49,11 +49,9 @@ type Sim struct {
 type Anaxi struct {
 	widget.BaseWidget
 
-	simulation     *Sim
-	mapImage       image.Image
-	mapCanvas      *canvas.Raster
-	mapMode        MapMode
-	mapModeDrawers map[MapMode]func(c humanCell)
+	simulation *Sim
+	mapImage   image.Image
+	mapCanvas  *canvas.Raster
 
 	speed          Speed
 	speedCustomTPS time.Duration
@@ -82,7 +80,7 @@ func (s *Sim) Update() error {
 func NewAnaxi(s *Sim) *Anaxi {
 	a := &Anaxi{
 		simulation:     s,
-		mapImage:       GenGridImage(s, s.popMapModePixelDrawer()),
+		mapImage:       GenGridImage(s),
 		speed:          Paused,
 		lastTick:       time.Now(),
 		lastRefresh:    time.Now(),

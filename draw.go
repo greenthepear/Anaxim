@@ -7,11 +7,7 @@ import (
 	"math"
 )
 
-func (s *Sim) popMapModePixelDrawer(cell humanCell) func() {
-	return color.RGBA{}
-}
-
-func GenGridImage(s *Sim, mapModeFunc func(c humanCell)) image.Image {
+func GenGridImage(s *Sim) image.Image {
 	width, height := s.humanGrid.width, s.humanGrid.height
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
@@ -44,5 +40,5 @@ func GenGridImage(s *Sim, mapModeFunc func(c humanCell)) image.Image {
 
 // Called by canvas.Refresh
 func (a *Anaxi) updateGridImage(w, h int) image.Image {
-	return GenGridImage(a.simulation, a.mapModeDrawers[a.mapMode])
+	return GenGridImage(a.simulation)
 }
