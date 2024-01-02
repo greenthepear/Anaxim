@@ -10,10 +10,7 @@ import (
 	"math/rand"
 	"time"
 
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/widget"
+	"github.com/AllenDang/giu"
 )
 
 func init() {
@@ -34,32 +31,22 @@ const (
 	Unlimited
 )
 
-type MapMode int
-
-const (
-	PopMode MapMode = iota
-	DevMode
-)
-
 type Sim struct {
 	mapGrid   *mapGrid
 	humanGrid *HumanGrid
 }
 
 type Anaxi struct {
-	widget.BaseWidget
-
 	simulation *Sim
 	mapImage   image.Image
-	mapCanvas  *canvas.Raster
+	mapTexture *giu.Texture
 
 	speed          Speed
-	speedCustomTPS time.Duration
+	speedCustomTPS int32
 	lastTick       time.Time
 	lastRefresh    time.Time
 
-	speedWidgets    *SpeedWidgets
-	leftInfoWidgets *LeftInfoWidgets
+	speedWidgets *SpeedWidgets
 }
 
 func (s *Sim) Prerun(generations int) {
@@ -81,18 +68,12 @@ func NewAnaxi(s *Sim) *Anaxi {
 	a := &Anaxi{
 		simulation:     s,
 		mapImage:       GenGridImage(s),
-		speed:          Paused,
+		speed:          Unlimited,
 		lastTick:       time.Now(),
 		lastRefresh:    time.Now(),
-		speedCustomTPS: 0,
+		speedCustomTPS: 1,
 	}
-	a.initUI()
-	a.ExtendBaseWidget(a)
 	return a
-}
-
-func (a *Anaxi) CreateRenderer() fyne.WidgetRenderer {
-	return widget.NewSimpleRenderer(a.buildUI())
 }
 
 func (a *Anaxi) TimeSinceLastTick() time.Duration {
@@ -111,11 +92,22 @@ func (a *Anaxi) Update() {
 
 	//Refresh image and info only now and then
 	if a.TimeSinceLastRefresh() > time.Second/24 {
-		canvas.Refresh(a.mapCanvas)
-		a.updateGlobalStatsWidgets()
+		//a.updateMapImage()
+		a.updateMapTexture()
+		giu.Update()
 		a.lastRefresh = time.Now()
 	}
 	a.lastTick = time.Now()
+}
+
+func (a *Anaxi) loop() {
+	a.createLayout()
+}
+
+func (a *Anaxi) updateMapTexture() {
+	giu.EnqueueNewTextureFromRgba(GenGridImage(a.simulation), func(tex *giu.Texture) {
+		a.mapTexture = tex
+	})
 }
 
 func (a *Anaxi) runSim() {
@@ -123,13 +115,14 @@ func (a *Anaxi) runSim() {
 		for { //Bad for performance, should use tick channels instead for custom speed
 			switch a.speed {
 			case Paused:
-				return
+				time.Sleep(time.Microsecond)
 			case Unlimited:
 				a.Update()
 			default:
-				if a.TimeSinceLastTick() > a.speedCustomTPS {
+				if a.TimeSinceLastTick() > time.Second/time.Duration(a.speedCustomTPS) {
 					a.Update()
 				}
+				time.Sleep(time.Microsecond)
 			}
 		}
 	}()
@@ -145,8 +138,6 @@ func main() {
 		log.Fatalf("Error creating MapGrid: %v", err)
 	}
 
-	a := app.New()
-
 	s := &Sim{
 		mapGrid:   preloadedMap,
 		humanGrid: NewHumanGrid(*preloadedMap, mapWidth, mapHeight, (mapWidth*mapHeight)/5000),
@@ -158,11 +149,13 @@ func main() {
 
 	anaxi := NewAnaxi(s)
 
-	w := a.NewWindow("Anaxi")
+	wnd := giu.NewMasterWindow("Anaxi", mapWidth*4+200, mapHeight*4+50, giu.MasterWindowFlagsFloating)
+	giu.Context.GetRenderer().SetTextureMagFilter(giu.TextureFilterNearest)
 
-	w.SetContent(anaxi)
+	anaxi.updateMapTexture()
+	anaxi.initUI()
 
-	w.Resize(fyne.NewSize(float32(mapWidth*2)+100, float32(mapHeight*2)+50))
+	anaxi.runSim()
 
-	w.ShowAndRun()
+	wnd.Run(anaxi.loop)
 }

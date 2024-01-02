@@ -2,131 +2,100 @@
 package main
 
 import (
-	"fmt"
-	"time"
-
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
-
+	"github.com/AllenDang/giu"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
 
 type SpeedWidgets struct {
-	widget.BaseWidget
-
-	pauseButton     *widget.Button
-	speedSlider     *widget.Slider
-	unlimitedButton *widget.Button
+	pause  *giu.ButtonWidget
+	slider *giu.SliderIntWidget
+	max    *giu.ButtonWidget
 }
 
-func (sw *SpeedWidgets) whilePausedSetTheme() {
-	sw.pauseButton.SetIcon(theme.MediaPlayIcon())
-	sw.pauseButton.SetText("Resume")
-
-	sw.unlimitedButton.SetIcon(theme.MediaFastForwardIcon())
-	sw.unlimitedButton.SetText("Paused\nClick to enable max speed")
+func createButtonWithSize(label string, onclick func(), width, height float32) *giu.ButtonWidget {
+	butt := giu.Button(label).OnClick(onclick)
+	butt.Size(width, height)
+	return butt
 }
 
-func (sw *SpeedWidgets) whileUnlimitedSetTheme() {
-	sw.unlimitedButton.SetIcon(theme.MediaPlayIcon())
-	sw.unlimitedButton.SetText("On max speed\nClick to enable slider speed")
-
-	sw.pauseButton.SetIcon(theme.MediaPauseIcon())
-	sw.pauseButton.SetText("Pause")
+func createBaseSpeedButton(label string, onlick func()) *giu.ButtonWidget {
+	return createButtonWithSize(label, onlick, float32(mapWidth)/4, 20)
 }
 
-func (sw *SpeedWidgets) whileCustomSetTheme() {
-	sw.unlimitedButton.SetIcon(theme.MediaFastForwardIcon())
-	sw.unlimitedButton.SetText("On slider speed\nClick to enable max speed")
-
-	sw.pauseButton.SetIcon(theme.MediaPauseIcon())
-	sw.pauseButton.SetText("Pause")
+func (a *Anaxi) setSpeedToUnlimited() {
+	a.speed = Unlimited
+	a.speedWidgets.pause = createBaseSpeedButton("Pause", func() { clickPause(a) })
+	a.speedWidgets.max = createBaseSpeedButton("Disable max", func() { clickMax(a) })
 }
 
-func whenTappedPause(a *Anaxi) func() {
-	return func() {
-		switch {
-		case a.speed == Paused:
-			a.speed = Custom
-			a.speedWidgets.whileCustomSetTheme()
-			a.speedWidgets.speedSlider.SetValue(50.0)
-			a.runSim()
-		case a.speed == Custom:
-			a.speed = Paused
-			a.speedWidgets.whilePausedSetTheme()
-		case a.speed == Unlimited:
-			a.speed = Paused
-			a.speedWidgets.whilePausedSetTheme()
-		}
+func (a *Anaxi) setSpeedToCustom() {
+	a.speed = Custom
+	a.speedWidgets.pause = createBaseSpeedButton("Pause", func() { clickPause(a) })
+	a.speedWidgets.max = createBaseSpeedButton("Enable max", func() { clickMax(a) })
+}
+
+func (a *Anaxi) setSpeedToPaused() {
+	a.speed = Paused
+	a.speedWidgets.pause = createBaseSpeedButton("Resume", func() { clickPause(a) })
+	a.speedWidgets.max = createBaseSpeedButton("Enable max", func() { clickMax(a) })
+}
+
+func clickPause(a *Anaxi) {
+	switch a.speed {
+	case Paused:
+		a.setSpeedToUnlimited()
+	case Custom:
+		a.setSpeedToPaused()
+	case Unlimited:
+		a.setSpeedToPaused()
 	}
+	giu.Update()
 }
 
-func whenTappedUnlimited(a *Anaxi) func() {
-	return func() {
-		switch {
-		case a.speed == Paused:
-			a.speed = Unlimited
-			a.speedWidgets.whileUnlimitedSetTheme()
-			a.runSim()
-		case a.speed == Custom:
-			a.speed = Unlimited
-			a.speedWidgets.whileUnlimitedSetTheme()
-		case a.speed == Unlimited:
-			a.speed = Custom
-			a.speedWidgets.whileCustomSetTheme()
-		}
+func clickMax(a *Anaxi) {
+	switch a.speed {
+	case Paused:
+		a.setSpeedToUnlimited()
+	case Custom:
+		a.setSpeedToUnlimited()
+	case Unlimited:
+		a.setSpeedToCustom()
 	}
+	giu.Update()
 }
 
-func whenSpeedSliderDragEnd(a *Anaxi) func(float64) {
-	return func(float64) {
-		val := a.speedWidgets.speedSlider.Value
-		if val == 0 {
-			a.speed = Paused
-			a.speedWidgets.whilePausedSetTheme()
-			return
-		}
-		if a.speed == Paused {
-			a.runSim()
-		}
-		a.speed = Custom
-		a.speedWidgets.whileCustomSetTheme()
-		a.speedCustomTPS = time.Duration(time.Second / time.Duration(val))
+func (a *Anaxi) initUI() {
+	a.speedWidgets = NewSpeedWidgets(a)
+
+	switch a.speed {
+	case Paused:
+		a.setSpeedToPaused()
+	case Custom:
+		a.setSpeedToCustom()
+	case Unlimited:
+		a.setSpeedToUnlimited()
 	}
 }
 
 func NewSpeedWidgets(a *Anaxi) *SpeedWidgets {
-	sw := &SpeedWidgets{
-		pauseButton: widget.NewButtonWithIcon(
-			"Pause", theme.MediaPauseIcon(), whenTappedPause(a)),
-		unlimitedButton: widget.NewButtonWithIcon(
-			"Paused\nClick to enable max speed", theme.MediaFastForwardIcon(), whenTappedUnlimited(a)),
-		speedSlider: widget.NewSlider(0.0, 100.0),
+	slider := giu.SliderInt(&a.speedCustomTPS, 1, 100).OnChange(func() { a.setSpeedToCustom() })
+	//slider.Size(giu.Auto)
+	return &SpeedWidgets{
+		giu.Button("Pause").OnClick(func() { clickPause(a) }),
+		slider,
+		giu.Button("Max").OnClick(func() { clickMax(a) }),
 	}
-
-	sw.speedSlider.Step = 5.0
-	sw.speedSlider.OnChanged = whenSpeedSliderDragEnd(a)
-
-	return sw
 }
 
-func (a *Anaxi) buildSpeedControls() fyne.CanvasObject {
-	return container.NewGridWithColumns(
-		3,
-		a.speedWidgets.pauseButton,
-		a.speedWidgets.speedSlider,
-		a.speedWidgets.unlimitedButton,
-	)
-}
-
-type LeftInfoWidgets struct {
-	widget.BaseWidget
-
-	globalStats *widget.Label
+func (a *Anaxi) genSpeedText() string {
+	str := "Speed controls. Currently "
+	suffixes := map[Speed]string{
+		Paused:    "paused",
+		Custom:    "on custom (slider) speed.",
+		Unlimited: "on unlimited (max) speed.",
+	}
+	return str + suffixes[a.speed]
 }
 
 func (a *Anaxi) genGlobalStatsString() string {
@@ -134,49 +103,43 @@ func (a *Anaxi) genGlobalStatsString() string {
 	printer := message.NewPrinter(language.English)
 	return printer.Sprintf(
 		`Simulation generation:		
-⏰ %d
+%d
 			
 World population:
-🌍 %d
+%d
 Biggest population:
-👨‍👩‍👦‍👦 %d @ (%d,%d)`,
+%d @ (%d,%d)`,
 		a.simulation.humanGrid.generation,
 		a.simulation.humanGrid.globalPop,
 		biggestCell.population, biggestCell.x, biggestCell.y,
 	)
 }
 
-func NewLeftInforWidgets(a *Anaxi) *LeftInfoWidgets {
-	return &LeftInfoWidgets{
-		globalStats: widget.NewLabel(a.genGlobalStatsString() + "\n\nSimulation ready to start!"),
-	}
-}
+func (a *Anaxi) createLayout() {
+	img := giu.Image(a.mapTexture)
+	img.Size(float32(a.mapImage.Bounds().Dx())*4, float32(a.mapImage.Bounds().Dy())*4)
 
-func (a *Anaxi) updateGlobalStatsWidgets() {
-	a.leftInfoWidgets.globalStats.SetText(a.genGlobalStatsString())
-}
+	statLabel := giu.Label(a.genGlobalStatsString())
+	mapAndSpeedCol := giu.Column(
+		giu.Row(
+			giu.Label(a.genSpeedText()),
+		),
+		giu.Row(
+			a.speedWidgets.pause,
+			a.speedWidgets.slider,
+			a.speedWidgets.max,
+		),
+		giu.Row(
+			img,
+		),
+	)
 
-func (a *Anaxi) buildLeftInfo() fyne.CanvasObject {
-	c := container.NewGridWithRows(1, a.leftInfoWidgets.globalStats)
-	c.Resize(fyne.NewSize(400, 400))
-	return c
-}
-
-func (a *Anaxi) initUI() {
-	a.speedWidgets = NewSpeedWidgets(a)
-	a.leftInfoWidgets = NewLeftInforWidgets(a)
-	a.mapCanvas = canvas.NewRaster(a.updateGridImage)
-	a.mapCanvas.ScaleMode = canvas.ImageScalePixels
-}
-
-func (a *Anaxi) buildUI() fyne.CanvasObject {
-	mapCont := container.NewPadded(a.mapCanvas)
-	mapAndSpeed := container.NewBorder(
-		a.buildSpeedControls(), nil, nil, nil, mapCont)
-
-	return container.NewBorder(nil, nil, a.buildLeftInfo(), nil, mapAndSpeed)
-}
-
-func (a *Anaxi) Tapped(ev *fyne.PointEvent) {
-	fmt.Printf("Tapped %+v\n", ev)
+	giu.SingleWindow().Layout(
+		giu.Row(
+			giu.Column(
+				statLabel,
+			),
+			mapAndSpeedCol,
+		),
+	)
 }

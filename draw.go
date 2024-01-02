@@ -38,7 +38,6 @@ func GenGridImage(s *Sim) image.Image {
 	return img
 }
 
-// Called by canvas.Refresh
-func (a *Anaxi) updateGridImage(w, h int) image.Image {
-	return GenGridImage(a.simulation)
+func (a *Anaxi) updateMapImage() {
+	a.mapImage = GenGridImage(a.simulation)
 }
