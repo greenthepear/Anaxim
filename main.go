@@ -34,6 +34,13 @@ const (
 	Unlimited
 )
 
+type MapMode int
+
+const (
+	PopMode MapMode = iota
+	DevMode
+)
+
 type Sim struct {
 	mapGrid   *mapGrid
 	humanGrid *HumanGrid
@@ -113,10 +120,10 @@ func (a *Anaxi) Update() {
 
 func (a *Anaxi) runSim() {
 	go func() {
-		for {
+		for { //Bad for performance, should use tick channels instead for custom speed
 			switch a.speed {
 			case Paused:
-				//pass
+				return
 			case Unlimited:
 				a.Update()
 			default:
@@ -153,9 +160,7 @@ func main() {
 
 	w := a.NewWindow("Anaxi")
 
-	anaxi.runSim()
-
-	w.SetContent(anaxi.buildUI())
+	w.SetContent(anaxi)
 
 	w.Resize(fyne.NewSize(float32(mapWidth*2)+100, float32(mapHeight*2)+50))
 
