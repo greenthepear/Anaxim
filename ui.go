@@ -54,6 +54,7 @@ func whenTappedPause(a *Anaxi) func() {
 			a.speed = Custom
 			a.speedWidgets.whileCustomSetTheme()
 			a.speedWidgets.speedSlider.SetValue(50.0)
+			a.runSim()
 		case a.speed == Custom:
 			a.speed = Paused
 			a.speedWidgets.whilePausedSetTheme()
@@ -70,6 +71,7 @@ func whenTappedUnlimited(a *Anaxi) func() {
 		case a.speed == Paused:
 			a.speed = Unlimited
 			a.speedWidgets.whileUnlimitedSetTheme()
+			a.runSim()
 		case a.speed == Custom:
 			a.speed = Unlimited
 			a.speedWidgets.whileUnlimitedSetTheme()
@@ -87,6 +89,9 @@ func whenSpeedSliderDragEnd(a *Anaxi) func(float64) {
 			a.speed = Paused
 			a.speedWidgets.whilePausedSetTheme()
 			return
+		}
+		if a.speed == Paused {
+			a.runSim()
 		}
 		a.speed = Custom
 		a.speedWidgets.whileCustomSetTheme()
@@ -173,6 +178,5 @@ func (a *Anaxi) buildUI() fyne.CanvasObject {
 }
 
 func (a *Anaxi) Tapped(ev *fyne.PointEvent) {
-	fmt.Printf("Tapped %+v", ev)
-	fmt.Print(ev.Position)
+	fmt.Printf("Tapped %+v\n", ev)
 }

@@ -67,7 +67,7 @@ func NewMapGrid(path string) (*mapGrid, error) {
 			} else {
 				mc.isLand = true
 
-				//The inverse of how white the cell is determins habilability, both habitable and
+				//The inverse of how white the cell is determines habilability, both habitable and
 				//inhabitable cells have the same green value so we must use either blue or red
 				//to determine the "whiteness". This will probably be changed in the future as we
 				//have 4 values to work with which can be used to determine more things from a

@@ -34,6 +34,13 @@ const (
 	Unlimited
 )
 
+type MapMode int
+
+const (
+	PopMode MapMode = iota
+	DevMode
+)
+
 type Sim struct {
 	mapGrid   *mapGrid
 	humanGrid *HumanGrid
@@ -42,9 +49,11 @@ type Sim struct {
 type Anaxi struct {
 	widget.BaseWidget
 
-	simulation *Sim
-	mapImage   image.Image
-	mapCanvas  *canvas.Raster
+	simulation     *Sim
+	mapImage       image.Image
+	mapCanvas      *canvas.Raster
+	mapMode        MapMode
+	mapModeDrawers map[MapMode]func(c humanCell)
 
 	speed          Speed
 	speedCustomTPS time.Duration
@@ -73,7 +82,7 @@ func (s *Sim) Update() error {
 func NewAnaxi(s *Sim) *Anaxi {
 	a := &Anaxi{
 		simulation:     s,
-		mapImage:       GenGridImage(s),
+		mapImage:       GenGridImage(s, s.popMapModePixelDrawer()),
 		speed:          Paused,
 		lastTick:       time.Now(),
 		lastRefresh:    time.Now(),
@@ -113,10 +122,10 @@ func (a *Anaxi) Update() {
 
 func (a *Anaxi) runSim() {
 	go func() {
-		for {
+		for { //Bad for performance, should use tick channels instead for custom speed
 			switch a.speed {
 			case Paused:
-				//pass
+				return
 			case Unlimited:
 				a.Update()
 			default:
@@ -153,9 +162,7 @@ func main() {
 
 	w := a.NewWindow("Anaxi")
 
-	anaxi.runSim()
-
-	w.SetContent(anaxi.buildUI())
+	w.SetContent(anaxi)
 
 	w.Resize(fyne.NewSize(float32(mapWidth*2)+100, float32(mapHeight*2)+50))
 
