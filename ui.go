@@ -20,7 +20,7 @@ func createButtonWithSize(label string, onclick func(), width, height float32) *
 }
 
 func createBaseSpeedButton(label string, onlick func()) *giu.ButtonWidget {
-	return createButtonWithSize(label, onlick, float32(mapWidth)/4, 20)
+	return createButtonWithSize(label, onlick, float32(mapWidth*mapResize/8), 20)
 }
 
 func (a *Anaxi) setSpeedToUnlimited() {
@@ -80,11 +80,11 @@ func (a *Anaxi) initUI() {
 
 func NewSpeedWidgets(a *Anaxi) *SpeedWidgets {
 	slider := giu.SliderInt(&a.speedCustomTPS, 1, 100).OnChange(func() { a.setSpeedToCustom() })
-	//slider.Size(giu.Auto)
+	slider.Size(float32(mapWidth*mapResize) * 0.74) //makes it roughly fit but should find a better way for this
 	return &SpeedWidgets{
-		giu.Button("Pause").OnClick(func() { clickPause(a) }),
+		createBaseSpeedButton("Pause", func() { clickPause(a) }),
 		slider,
-		giu.Button("Max").OnClick(func() { clickMax(a) }),
+		createBaseSpeedButton("Enable max", func() { clickMax(a) }),
 	}
 }
 
@@ -117,7 +117,7 @@ Biggest population:
 
 func (a *Anaxi) createLayout() {
 	img := giu.Image(a.mapTexture)
-	img.Size(float32(a.mapImage.Bounds().Dx())*4, float32(a.mapImage.Bounds().Dy())*4)
+	img.Size(float32(a.mapImage.Bounds().Dx()*mapResize), float32(a.mapImage.Bounds().Dy()*mapResize))
 
 	statLabel := giu.Label(a.genGlobalStatsString())
 	mapAndSpeedCol := giu.Column(

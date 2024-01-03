@@ -38,6 +38,7 @@ func GenGridImage(s *Sim) image.Image {
 	return img
 }
 
+//lint:ignore U1000 might be useful for snapshots later
 func (a *Anaxi) updateMapImage() {
 	a.mapImage = GenGridImage(a.simulation)
 }

@@ -23,6 +23,8 @@ var ( //set by NewMapGrid
 	mapHeight = 0
 )
 
+var mapResize = 4 //TODO: calculate it instead
+
 type Speed int
 
 const (
@@ -129,9 +131,15 @@ func (a *Anaxi) runSim() {
 }
 
 func main() {
-	mapPath := flag.String("mappath", "./defmap.png", "Path to the map PNG file.")
+	mapPath := flag.String("mappath", "./Maps/oldworld.png", "Path to the map PNG file.")
 	prerunGenerations := flag.Int("prerun", 0, "Generations to simulate before launching, min 50")
+	flag.IntVar(&mapResize, "mapsize", 4, "How much to resize the map (needs to be between 1 and 8)")
+
 	flag.Parse()
+
+	if mapResize < 1 || mapResize > 8 {
+		log.Fatalf("Flag mapsize out of range [1,8]: %d", mapResize)
+	}
 
 	preloadedMap, err := NewMapGrid(*mapPath) //Needed to set screen size
 	if err != nil {
@@ -149,7 +157,7 @@ func main() {
 
 	anaxi := NewAnaxi(s)
 
-	wnd := giu.NewMasterWindow("Anaxi", mapWidth*4+200, mapHeight*4+50, giu.MasterWindowFlagsFloating)
+	wnd := giu.NewMasterWindow("Anaxi", mapWidth*mapResize+200, mapHeight*mapResize+50, giu.MasterWindowFlagsFloating)
 	giu.Context.GetRenderer().SetTextureMagFilter(giu.TextureFilterNearest)
 
 	anaxi.updateMapTexture()
