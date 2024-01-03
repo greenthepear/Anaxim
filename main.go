@@ -49,6 +49,10 @@ type Anaxi struct {
 	lastRefresh    time.Time
 
 	speedWidgets *SpeedWidgets
+
+	howeringOverCellAt image.Point
+	inspectingCellAt   image.Point
+	inspectingCell     *humanCell
 }
 
 func (s *Sim) Prerun(generations int) {
@@ -157,7 +161,7 @@ func main() {
 
 	anaxi := NewAnaxi(s)
 
-	wnd := giu.NewMasterWindow("Anaxi", mapWidth*mapResize+200, mapHeight*mapResize+50, giu.MasterWindowFlagsFloating)
+	wnd := giu.NewMasterWindow("Anaxi", mapWidth*mapResize+200, mapHeight*mapResize+100, giu.MasterWindowFlagsNotResizable)
 	giu.Context.GetRenderer().SetTextureMagFilter(giu.TextureFilterNearest)
 
 	anaxi.updateMapTexture()

@@ -131,6 +131,7 @@ func (a *Anaxi) createLayout() {
 		),
 		giu.Row(
 			img,
+			a.mapInputEvents(),
 		),
 	)
 
