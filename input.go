@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 
 	"github.com/AllenDang/giu"
@@ -9,15 +8,23 @@ import (
 
 func (a *Anaxi) mapInputEvents() giu.Widget {
 	return giu.Event().OnHover(func() {
-		//empty for now
-	}).OnClick(giu.MouseButtonLeft, func() {
-		imgPos := giu.GetCursorPos()
-		curPos := giu.GetMousePos()
+		drawCursorPos := giu.GetCursorPos()
+		mousePos := giu.GetMousePos()
 
-		actualPos := image.Point{
-			X: curPos.X - (imgPos.X - mapWidth*mapResize) + 8, //magic padding number
-			Y: curPos.Y - imgPos.Y,
+		overImagePos := image.Point{
+			X: mousePos.X - (drawCursorPos.X - mapWidth*mapResize) + 8, //magic padding number
+			Y: mousePos.Y - drawCursorPos.Y,
 		}
-		fmt.Printf("\n%v -> %v\n%v\n", imgPos, curPos, actualPos)
+		pixelPos := image.Point{
+			X: overImagePos.X / mapResize,
+			Y: overImagePos.Y / mapResize,
+		}
+
+		a.howeringOverCellAt = pixelPos
+	}).OnClick(giu.MouseButtonLeft, func() {
+		a.inspectingCellAt = a.howeringOverCellAt
+
+		a.inspectingCell = a.simulation.humanGrid.CellAt(
+			a.inspectingCellAt.X, a.inspectingCellAt.Y)
 	})
 }

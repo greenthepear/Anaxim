@@ -1,9 +1,7 @@
 **Anaxi** *(named after the ancient Greek philosopher and cartographer Anaximander)* is a civilisation simulator made in ~~Ebitengine~~ ~~Fyne~~ [giu](https://github.com/AllenDang/giu), with the main goal of making a visually appealing and interactive timeline of the world using cellular automata.
 
 # State
-Currently the "game" only features a basic migration simulation on a map (defmap.png) where you can ~~see the population of any cell with your mouse cursor~~* and control the speed. Some statistics are displayed on the left. ~~Clicking gives some debugging info in the terminal.~~*
-
-\* *Migration from Ebitengine got rid of these functionalities for now, working on it.*
+Currently the "game" only features a basic migration simulation on a map where you can see global statistics, inspect information of any cell by clicking and control the speed.
 
 # Building
 To build you need Go (1.21.4), a GCC compiler (for cgo) and depending on platform, some dependencies. Info below is mostly from the [giu readme](https://github.com/AllenDang/giu#install), which you'll need if you want to build on different platforms than Windows and Linux and **please refer to it if you have issues**.

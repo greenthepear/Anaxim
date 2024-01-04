@@ -18,6 +18,7 @@ type humanCell struct {
 	x             int
 	y             int
 	adjacentCells []*humanCell
+	mapCell       *mapCell
 	population    int64
 	development   float64
 }
@@ -93,6 +94,7 @@ func (c *humanCell) initCell(x, y int, world *HumanGrid, startingDev float64) {
 	c.x, c.y = x, y
 	c.development = startingDev
 	c.GenNeighbors(world)
+	c.mapCell = world.MapCellOf(c)
 }
 
 // init inits humanGrid by initing cells and placing with a population in random spots
@@ -129,7 +131,7 @@ func NewHumanGrid(m mapGrid, width, height int, maxInitLiveCells int) *HumanGrid
 		generation:     0,
 		areaWorld:      &m,
 		globalPop:      0,
-		biggestPopCell: humanCell{0, 0, nil, 0, 0.0}, //Temporary
+		biggestPopCell: humanCell{0, 0, nil, nil, 0, 0.0}, //Temporary
 	}
 	w.init(maxInitLiveCells)
 	return w

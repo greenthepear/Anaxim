@@ -72,12 +72,15 @@ func (s *Sim) Update() error {
 
 func NewAnaxi(s *Sim) *Anaxi {
 	a := &Anaxi{
-		simulation:     s,
-		mapImage:       GenGridImage(s),
-		speed:          Unlimited,
-		lastTick:       time.Now(),
-		lastRefresh:    time.Now(),
-		speedCustomTPS: 1,
+		simulation:         s,
+		mapImage:           GenGridImage(s),
+		speed:              Unlimited,
+		lastTick:           time.Now(),
+		lastRefresh:        time.Now(),
+		speedCustomTPS:     1,
+		howeringOverCellAt: image.Pt(0, 0),
+		inspectingCellAt:   image.Pt(0, 0),
+		inspectingCell:     nil,
 	}
 	return a
 }
@@ -161,7 +164,7 @@ func main() {
 
 	anaxi := NewAnaxi(s)
 
-	wnd := giu.NewMasterWindow("Anaxi", mapWidth*mapResize+200, mapHeight*mapResize+100, giu.MasterWindowFlagsNotResizable)
+	wnd := giu.NewMasterWindow("Anaxi", mapWidth*mapResize+leftColumnWidth+10, mapHeight*mapResize+100, giu.MasterWindowFlagsNotResizable)
 	giu.Context.GetRenderer().SetTextureMagFilter(giu.TextureFilterNearest)
 
 	anaxi.updateMapTexture()

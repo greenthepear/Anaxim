@@ -2,10 +2,14 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/AllenDang/giu"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
+
+const leftColumnWidth = 250
 
 type SpeedWidgets struct {
 	pause  *giu.ButtonWidget
@@ -102,7 +106,7 @@ func (a *Anaxi) genGlobalStatsString() string {
 	biggestCell := a.simulation.humanGrid.biggestPopCell
 	printer := message.NewPrinter(language.English)
 	return printer.Sprintf(
-		`Simulation generation:		
+		`Simulation generation:
 %d
 			
 World population:
@@ -115,11 +119,49 @@ Biggest population:
 	)
 }
 
+func (a *Anaxi) genLocalStatsString() string {
+	ic := a.inspectingCell
+	if ic == nil {
+		return "Click on a specfic cell (pixel) to inspect it."
+	}
+	printer := message.NewPrinter(language.English)
+	dev := fmt.Sprint(ic.development)
+	if dev == "1" {
+		dev += " (base)"
+	}
+
+	prefix := fmt.Sprintf(
+		`Inspecting cell @ %v
+
+Map info:`, a.inspectingCellAt.String())
+
+	mc := ic.mapCell
+	if !mc.isLand {
+		return prefix + "\n\tWater cell"
+	}
+	mapInfo := fmt.Sprintf("Land cell\n\tHabitability:\n\t%v", mc.habitability)
+
+	return printer.Sprintf(
+		`%v
+	%v
+
+Human activity:
+	Population:
+	%d
+	Development:
+	%v`,
+		prefix,
+		mapInfo,
+		ic.population, dev,
+	)
+}
+
 func (a *Anaxi) createLayout() {
 	img := giu.Image(a.mapTexture)
 	img.Size(float32(a.mapImage.Bounds().Dx()*mapResize), float32(a.mapImage.Bounds().Dy()*mapResize))
 
-	statLabel := giu.Label(a.genGlobalStatsString())
+	globalStatLabel := giu.Label(a.genGlobalStatsString())
+	localStatLabel := giu.Label(a.genLocalStatsString())
 	mapAndSpeedCol := giu.Column(
 		giu.Row(
 			giu.Label(a.genSpeedText()),
@@ -133,12 +175,26 @@ func (a *Anaxi) createLayout() {
 			img,
 			a.mapInputEvents(),
 		),
+		giu.Row(
+			giu.Dummy(0, 0),
+		),
+		giu.Row(
+			giu.Label(a.howeringOverCellAt.String()),
+		),
 	)
 
 	giu.SingleWindow().Layout(
 		giu.Row(
 			giu.Column(
-				statLabel,
+				giu.Row(
+					globalStatLabel,
+				),
+				giu.Row(
+					giu.Dummy(leftColumnWidth, 30),
+				),
+				giu.Row(
+					localStatLabel,
+				),
 			),
 			mapAndSpeedCol,
 		),
