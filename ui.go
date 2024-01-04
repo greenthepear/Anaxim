@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 
 	"github.com/AllenDang/giu"
 	"golang.org/x/text/language"
@@ -172,8 +173,32 @@ func (a *Anaxi) createLayout() {
 			a.speedWidgets.max,
 		),
 		giu.Row(
+			/*
+				giu.Custom(func() {
+					can := giu.GetCanvas()
+					curpos := giu.GetCursorPos()
+					can.AddImage(a.mapTexture, curpos, a.mapImage.Bounds().Size())
+					if a.inspectingCell != nil {
+						can.AddCircle(a.inspectingCellAt.Mul(mapResize), 3,
+							color.RGBA{0xff, 0xff, 0xff, 100}, 1, 1)
+					}
+				}),
+			*/
 			img,
 			a.mapInputEvents(),
+			giu.Custom(func() {
+				can := giu.GetCanvas()
+
+				//Inspecting map cursor
+				if a.inspectingCell != nil {
+					can.AddCircle(a.inspectingCanvasPoint, float32(mapResize),
+						color.RGBA{0xff, 0xff, 0xff, 200}, 4, 2)
+				}
+
+				//Howering map cursor
+				can.AddCircle(a.howeringOverCellCanvasPoint, float32(mapResize*2),
+					color.RGBA{0xff, 0xff, 0xff, 100}, 4, 2)
+			}),
 		),
 		giu.Row(
 			giu.Dummy(0, 0),

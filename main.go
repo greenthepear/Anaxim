@@ -50,9 +50,11 @@ type Anaxi struct {
 
 	speedWidgets *SpeedWidgets
 
-	howeringOverCellAt image.Point
-	inspectingCellAt   image.Point
-	inspectingCell     *humanCell
+	howeringOverCellAt          image.Point
+	howeringOverCellCanvasPoint image.Point
+	inspectingCellAt            image.Point
+	inspectingCell              *humanCell
+	inspectingCanvasPoint       image.Point
 }
 
 func (s *Sim) Prerun(generations int) {
@@ -72,15 +74,16 @@ func (s *Sim) Update() error {
 
 func NewAnaxi(s *Sim) *Anaxi {
 	a := &Anaxi{
-		simulation:         s,
-		mapImage:           GenGridImage(s),
-		speed:              Unlimited,
-		lastTick:           time.Now(),
-		lastRefresh:        time.Now(),
-		speedCustomTPS:     1,
-		howeringOverCellAt: image.Pt(0, 0),
-		inspectingCellAt:   image.Pt(0, 0),
-		inspectingCell:     nil,
+		simulation:                  s,
+		mapImage:                    GenGridImage(s),
+		speed:                       Unlimited,
+		lastTick:                    time.Now(),
+		lastRefresh:                 time.Now(),
+		speedCustomTPS:              1,
+		howeringOverCellAt:          image.Pt(0, 0),
+		howeringOverCellCanvasPoint: image.Pt(0, 0),
+		inspectingCellAt:            image.Pt(0, 0),
+		inspectingCell:              nil,
 	}
 	return a
 }
