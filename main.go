@@ -1,4 +1,4 @@
-// Main ebiten stuff, main() and Update() is here
+// Initialization and general application loop
 package main
 
 import (
@@ -18,11 +18,6 @@ func init() {
 	image.RegisterFormat("png", "png", png.Decode, png.DecodeConfig)
 }
 
-var ( //set by NewMapGrid
-	mapWidth  = 0
-	mapHeight = 0
-)
-
 var mapResize = 4 //TODO: calculate it instead
 
 type Speed int
@@ -38,10 +33,11 @@ type Sim struct {
 	humanGrid *HumanGrid
 }
 
-type Anaxi struct {
-	simulation *Sim
-	mapImage   image.Image
-	mapTexture *giu.Texture
+type Anaxim struct {
+	simulation          *Sim
+	mapImage            image.Image
+	mapTexture          *giu.Texture
+	mapWidth, mapHeight int
 
 	speed          Speed
 	speedCustomTPS int32
@@ -72,10 +68,12 @@ func (s *Sim) Update() error {
 	return s.humanGrid.Update()
 }
 
-func NewAnaxi(s *Sim) *Anaxi {
-	a := &Anaxi{
+func NewAnaxi(s *Sim) *Anaxim {
+	a := &Anaxim{
 		simulation:                  s,
 		mapImage:                    GenGridImage(s),
+		mapWidth:                    s.mapGrid.width,
+		mapHeight:                   s.mapGrid.height,
 		speed:                       Unlimited,
 		lastTick:                    time.Now(),
 		lastRefresh:                 time.Now(),
@@ -88,15 +86,15 @@ func NewAnaxi(s *Sim) *Anaxi {
 	return a
 }
 
-func (a *Anaxi) TimeSinceLastTick() time.Duration {
+func (a *Anaxim) TimeSinceLastTick() time.Duration {
 	return time.Since(a.lastTick)
 }
 
-func (a *Anaxi) TimeSinceLastRefresh() time.Duration {
+func (a *Anaxim) TimeSinceLastRefresh() time.Duration {
 	return time.Since(a.lastRefresh)
 }
 
-func (a *Anaxi) Update() {
+func (a *Anaxim) Update() {
 	err := a.simulation.Update()
 	if err != nil {
 		log.Fatalf("Simulation error: %v", err)
@@ -112,17 +110,17 @@ func (a *Anaxi) Update() {
 	a.lastTick = time.Now()
 }
 
-func (a *Anaxi) loop() {
+func (a *Anaxim) loop() {
 	a.createLayout()
 }
 
-func (a *Anaxi) updateMapTexture() {
+func (a *Anaxim) updateMapTexture() {
 	giu.EnqueueNewTextureFromRgba(GenGridImage(a.simulation), func(tex *giu.Texture) {
 		a.mapTexture = tex
 	})
 }
 
-func (a *Anaxi) runSim() {
+func (a *Anaxim) runSim() {
 	go func() {
 		for { //Bad for performance, should use tick channels instead for custom speed
 			switch a.speed {
@@ -151,10 +149,11 @@ func main() {
 		log.Fatalf("Flag mapsize out of range [1,8]: %d", mapResize)
 	}
 
-	preloadedMap, err := NewMapGrid(*mapPath) //Needed to set screen size
+	preloadedMap, err := NewMapGrid(*mapPath)
 	if err != nil {
 		log.Fatalf("Error creating MapGrid: %v", err)
 	}
+	mapWidth, mapHeight := preloadedMap.width, preloadedMap.height
 
 	s := &Sim{
 		mapGrid:   preloadedMap,
@@ -165,15 +164,15 @@ func main() {
 		s.Prerun(*prerunGenerations)
 	}
 
-	anaxi := NewAnaxi(s)
+	Anaxim := NewAnaxi(s)
 
-	wnd := giu.NewMasterWindow("Anaxi", mapWidth*mapResize+leftColumnWidth+10, mapHeight*mapResize+100, giu.MasterWindowFlagsNotResizable)
+	wnd := giu.NewMasterWindow("Anaxim", mapWidth*mapResize+leftColumnWidth+20, mapHeight*mapResize+100, giu.MasterWindowFlagsNotResizable)
 	giu.Context.GetRenderer().SetTextureMagFilter(giu.TextureFilterNearest)
 
-	anaxi.updateMapTexture()
-	anaxi.initUI()
+	Anaxim.updateMapTexture()
+	Anaxim.initUI()
 
-	anaxi.runSim()
+	Anaxim.runSim()
 
-	wnd.Run(anaxi.loop)
+	wnd.Run(Anaxim.loop)
 }

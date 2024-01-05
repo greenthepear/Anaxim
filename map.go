@@ -49,9 +49,6 @@ func NewMapGrid(path string) (*mapGrid, error) {
 	}
 	imgWidth, imgHeight := img.Bounds().Max.X, img.Bounds().Max.Y
 
-	//Set screen size
-	mapWidth, mapHeight = imgWidth, imgHeight
-
 	mGrid := &mapGrid{
 		area:   make([]mapCell, imgWidth*imgHeight),
 		width:  imgWidth,

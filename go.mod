@@ -1,4 +1,4 @@
-module github.com/greenthepear/Anaxi
+module github.com/greenthepear/Anaxim
 
 go 1.21.4
 

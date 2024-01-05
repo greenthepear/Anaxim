@@ -1,4 +1,4 @@
-**Anaxi** *(named after the ancient Greek philosopher and cartographer Anaximander)* is a civilisation simulator made in ~~Ebitengine~~ ~~Fyne~~ [giu](https://github.com/AllenDang/giu), with the main goal of making a visually appealing and interactive timeline of the world using cellular automata.
+**Anaxim** *(pronounced *a-NAK-sim*, named after the ancient Greek philosopher and cartographer Anaximander)* is a civilisation simulator made in ~~Ebitengine~~ ~~Fyne~~ [giu](https://github.com/AllenDang/giu), with the main goal of making a visually appealing and interactive timeline of the world using cellular automata.
 
 # State
 Currently the "game" only features a basic migration simulation on a map where you can see global statistics, inspect information of any cell by clicking and control the speed.
@@ -17,8 +17,8 @@ To build you need Go (1.21.4), a GCC compiler (for cgo) and depending on platfor
     - Red Hat based: `sudo dnf install libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel libGL-devel libXxf86vm-devel`
 4. Compile! (See warning above)
 
-        git clone https://github.com/greenthepear/Anaxi.git
-        cd Anaxi
+        git clone https://github.com/greenthepear/Anaxim.git
+        cd Anaxim
         go build
 
 ## Windows
@@ -28,8 +28,8 @@ To build you need Go (1.21.4), a GCC compiler (for cgo) and depending on platfor
     - Save yourself the trouble and get [TDM-GCC](https://jmeubank.github.io/tdm-gcc/download/). You want the 64+32-bit MinGW-w64 edition.
 4. Compile! (See warning above)
 
-        git clone https://github.com/greenthepear/Anaxi.git
-        cd Anaxi
+        git clone https://github.com/greenthepear/Anaxim.git
+        cd Anaxim
         go build
           
 
@@ -38,7 +38,7 @@ To build you need Go (1.21.4), a GCC compiler (for cgo) and depending on platfor
 You need to have the `Maps` directory in the same folder as the executable, at least with oldworld.png, as `./Maps/oldworld.png` is the default path to the map.
 
     .
-    ├── Anaxi
+    ├── Anaxim
     └── Maps
         └── oldworld.png
 
@@ -46,14 +46,14 @@ To change this run the program with a different `mappath` flag. This is explaine
 
 ## Flags
 
-Optionally, you can set flags from the command-line when launching Anaxi. They can be checked `./Anaxi -h`. For example:
+Optionally, you can set flags from the command-line when launching Anaxim. They can be checked `./Anaxim -h`. For example:
 
     -mappath string
         Path to the map PNG file. (default "./Maps/oldworld.png")
     -prerun int
         Generations to simulate before launching, min 50
 
-So `./Anaxi -mappath=./Maps/bigisland.png -prerun=20000` will prerun the simulation for 20,000 generations on a map generated from bigisland.png.
+So `./Anaxim -mappath=./Maps/bigisland.png -prerun=20000` will prerun the simulation for 20,000 generations on a map generated from bigisland.png.
 
 ## Map file
 
@@ -74,4 +74,4 @@ The PNG map file is converted to a map grid like this:
 - Map modes
 
 # Contributing
-Sadly as I am writing a thesis on this project, I cannot accept any contributions until that's done (probably will take a few months). As the project is under GPL-3.0, I cannot stop you from forking and making your own Anaxi, but for now I would kindly ask to only contribute by sharing ideas with me and sharing Anaxi with the world instead. 
+Sadly as I am writing a thesis on this project, I cannot accept any contributions until that's done (probably will take a few months). As the project is under GPL-3.0, I cannot stop you from forking and making your own Anaxim, but for now I would kindly ask to only contribute by sharing ideas with me and sharing Anaxim with the world instead. 
