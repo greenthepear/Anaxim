@@ -1,4 +1,6 @@
-**Anaxim** *(pronounced *a-NAK-sim*, named after the ancient Greek philosopher and cartographer Anaximander)* is a civilisation simulator made in ~~Ebitengine~~ ~~Fyne~~ [giu](https://github.com/AllenDang/giu), with the main goal of making a visually appealing and interactive timeline of the world using cellular automata.
+[![Go Report Card](https://goreportcard.com/badge/github.com/greenthepear/Anaxim)](https://goreportcard.com/report/github.com/greenthepear/Anaxim)
+![logo](./img/logo.png)
+**Anaxim** *(pronounced *a-NAK-sim*, named after the ancient Greek philosopher and cartographer Anaximander)* is a civilization simulator made in ~~Ebitengine~~ ~~Fyne~~ [giu](https://github.com/AllenDang/giu), with the main goal of making a visually appealing and interactive timeline of the world using cellular automata.
 
 # State
 Currently the "game" only features a basic migration simulation on a map where you can see global statistics, inspect information of any cell by clicking and control the speed.
