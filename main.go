@@ -8,6 +8,8 @@ import (
 	"image/png"
 	"log"
 	"math/rand"
+	"os"
+	"runtime/pprof"
 	"time"
 
 	"github.com/AllenDang/giu"
@@ -139,11 +141,22 @@ func (a *Anaxim) runSim() {
 }
 
 func main() {
-	mapPath := flag.String("mappath", "./Maps/oldworld.png", "Path to the map PNG file.")
+
+	mapPath := flag.String("mappath", "./Maps/oldworld.png", "Path to the map PNG file")
 	prerunGenerations := flag.Int("prerun", 0, "Generations to simulate before launching, min 50")
 	flag.IntVar(&mapResize, "mapsize", 4, "How much to resize the map (needs to be between 1 and 8)")
+	cpuprof := flag.Bool("pprof", false, "Enable cpu profiling")
 
 	flag.Parse()
+
+	if *cpuprof {
+		f, err := os.Create("anaxim.prof")
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	if mapResize < 1 || mapResize > 8 {
 		log.Fatalf("Flag mapsize out of range [1,8]: %d", mapResize)
