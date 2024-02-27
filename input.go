@@ -52,7 +52,7 @@ func clickMax(a *Anaxim) {
 
 func snapPointToGrid(pt image.Point, gridSize int) image.Point {
 	//Div floors
-	return pt.Div(mapResize).Mul(mapResize).Add(image.Pt(mapResize, mapResize))
+	return pt.Div(mapResize).Mul(mapResize).Add(image.Pt(gridSize, gridSize))
 }
 
 func (a *Anaxim) mapInputEvents() giu.Widget {

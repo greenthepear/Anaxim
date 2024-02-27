@@ -1,12 +1,12 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/greenthepear/Anaxim)](https://goreportcard.com/report/github.com/greenthepear/Anaxim)
 ![logo](./img/logo.png)
-**Anaxim** *(pronounced *a-NAK-sim*, named after the ancient Greek philosopher and cartographer Anaximander)* is a civilization simulator made in ~~Ebitengine~~ ~~Fyne~~ [giu](https://github.com/AllenDang/giu), with the main goal of making a visually appealing and interactive timeline of the world using cellular automata.
+**Anaxim** *(pronounced *a-NAK-sim*, named after the ancient Greek philosopher and cartographer Anaximander)* is a civilization simulator made in ~~Ebitengine~~ ~~Fyne~~ [giu](https://github.com/AllenDang/giu), with the main goal of making a visually appealing and interactive timeline of the world using a cell-based simulation.
 
 # State
 Currently the "game" only features a basic migration simulation on a map where you can see global statistics, inspect information of any cell by clicking and control the speed.
 
 # Building
-To build you need Go (1.21.4), a GCC compiler (for cgo) and depending on platform, some dependencies. Info below is mostly from the [giu readme](https://github.com/AllenDang/giu#install), which you'll need if you want to build on different platforms than Windows and Linux and **please refer to it if you have issues**.
+To build you need Go (1.22.0), a GCC compiler (for cgo) and depending on platform, some dependencies. Info below is mostly from the [giu readme](https://github.com/AllenDang/giu#install), which you'll need if you want to build on different platforms than Windows and Linux and **please refer to it if you have issues**.
 
 **Warning! `go build` will seem to hang for a while the first time you try to compile as it needs to build the graphics drivers using GCC. Also a compilation warning might pop up from a demo file of github.com/AllenDang/imgui-go for some reason, just ignore it.** *"So much for fast Go compile times!" well, technically it's not Go. Feel free to fork giu to work without cgo.*
 
@@ -19,8 +19,6 @@ To build you need Go (1.21.4), a GCC compiler (for cgo) and depending on platfor
     - Red Hat based: `sudo dnf install libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel libGL-devel libXxf86vm-devel`
 4. Compile! (See warning above)
 
-        git clone https://github.com/greenthepear/Anaxim.git
-        cd Anaxim
         go build
 
 ## Windows
@@ -30,8 +28,6 @@ To build you need Go (1.21.4), a GCC compiler (for cgo) and depending on platfor
     - Save yourself the trouble and get [TDM-GCC](https://jmeubank.github.io/tdm-gcc/download/). You want the 64+32-bit MinGW-w64 edition.
 4. Compile! (See warning above)
 
-        git clone https://github.com/greenthepear/Anaxim.git
-        cd Anaxim
         go build
           
 

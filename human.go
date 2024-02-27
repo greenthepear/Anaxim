@@ -1,4 +1,4 @@
-// Processing cellular automata of human cells
+// Processing the cell simulation of human cells
 package main
 
 import (
@@ -135,26 +135,6 @@ func NewHumanGrid(m mapGrid, width, height int, maxInitLiveCells int) *HumanGrid
 	}
 	w.init(maxInitLiveCells)
 	return w
-}
-
-//lint:ignore U1000 Might switch
-func getNeighborsCoordinatesMoore(world []humanCell, width, height, x, y int) []coordinate {
-	coords := make([]coordinate, 0, 8)
-	for j := -1; j <= 1; j++ {
-		for i := -1; i <= 1; i++ {
-			if i == 0 && j == 0 {
-				continue
-			}
-			x2 := x + i
-			y2 := y + j
-			if x2 < 0 || y2 < 0 || width <= x2 || height <= y2 {
-				continue
-			}
-
-			coords = append(coords, coordinate{x2, y2})
-		}
-	}
-	return coords
 }
 
 func (w *HumanGrid) calcCapacityOfCell(cell *humanCell) float64 {

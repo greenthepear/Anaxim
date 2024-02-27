@@ -70,7 +70,7 @@ func (s *Sim) Update() error {
 	return s.humanGrid.Update()
 }
 
-func NewAnaxi(s *Sim) *Anaxim {
+func NewAnaxim(s *Sim) *Anaxim {
 	a := &Anaxim{
 		simulation:                  s,
 		mapImage:                    GenGridImage(s),
@@ -177,15 +177,15 @@ func main() {
 		s.Prerun(*prerunGenerations)
 	}
 
-	Anaxim := NewAnaxi(s)
+	anaxim := NewAnaxim(s)
 
 	wnd := giu.NewMasterWindow("Anaxim", mapWidth*mapResize+leftColumnWidth+20, mapHeight*mapResize+100, giu.MasterWindowFlagsNotResizable)
 	giu.Context.GetRenderer().SetTextureMagFilter(giu.TextureFilterNearest)
 
-	Anaxim.updateMapTexture()
-	Anaxim.initUI()
+	anaxim.updateMapTexture()
+	anaxim.initUI()
 
-	Anaxim.runSim()
+	anaxim.runSim()
 
-	wnd.Run(Anaxim.loop)
+	wnd.Run(anaxim.loop)
 }
