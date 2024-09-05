@@ -7,9 +7,9 @@ import (
 	"math"
 )
 
-func GenGridImage(s *Sim) image.Image {
-	width, height := s.humanGrid.width, s.humanGrid.height
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
+func GenGridImage(s *Sim, old image.Image) image.Image {
+	width := s.humanGrid.width
+	img := old.(*image.RGBA)
 
 	maxPop := s.humanGrid.biggestPopCell.population
 	for i, cell := range s.humanGrid.area {
@@ -40,5 +40,5 @@ func GenGridImage(s *Sim) image.Image {
 
 //lint:ignore U1000 might be useful for snapshots later
 func (a *Anaxim) updateMapImage() {
-	a.mapImage = GenGridImage(a.simulation)
+	a.mapImage = GenGridImage(a.simulation, a.mapImage)
 }

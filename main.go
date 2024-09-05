@@ -72,8 +72,9 @@ func (s *Sim) Update() error {
 
 func NewAnaxim(s *Sim) *Anaxim {
 	a := &Anaxim{
-		simulation:                  s,
-		mapImage:                    GenGridImage(s),
+		simulation: s,
+		mapImage: GenGridImage(s,
+			image.NewRGBA(image.Rect(0, 0, s.mapGrid.width, s.mapGrid.height))),
 		mapWidth:                    s.mapGrid.width,
 		mapHeight:                   s.mapGrid.height,
 		speed:                       Unlimited,
@@ -117,9 +118,11 @@ func (a *Anaxim) loop() {
 }
 
 func (a *Anaxim) updateMapTexture() {
-	giu.EnqueueNewTextureFromRgba(GenGridImage(a.simulation), func(tex *giu.Texture) {
-		a.mapTexture = tex
-	})
+	giu.EnqueueNewTextureFromRgba(
+		GenGridImage(a.simulation, a.mapImage),
+		func(tex *giu.Texture) {
+			a.mapTexture = tex
+		})
 }
 
 func (a *Anaxim) runSim() {
