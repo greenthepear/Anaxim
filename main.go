@@ -37,7 +37,7 @@ type Sim struct {
 
 type Anaxim struct {
 	simulation          *Sim
-	mapImage            image.Image
+	mapImage            *image.RGBA
 	mapTexture          *giu.Texture
 	mapWidth, mapHeight int
 
@@ -71,10 +71,14 @@ func (s *Sim) Update() error {
 }
 
 func NewAnaxim(s *Sim) *Anaxim {
+	mapImg :=
+		image.NewRGBA(image.Rect(0, 0, s.mapGrid.width, s.mapGrid.height))
+
+	UpdateGridImage(s, mapImg)
+
 	a := &Anaxim{
-		simulation: s,
-		mapImage: GenGridImage(s,
-			image.NewRGBA(image.Rect(0, 0, s.mapGrid.width, s.mapGrid.height))),
+		simulation:                  s,
+		mapImage:                    mapImg,
 		mapWidth:                    s.mapGrid.width,
 		mapHeight:                   s.mapGrid.height,
 		speed:                       Unlimited,
@@ -118,8 +122,9 @@ func (a *Anaxim) loop() {
 }
 
 func (a *Anaxim) updateMapTexture() {
+	UpdateGridImage(a.simulation, a.mapImage)
 	giu.EnqueueNewTextureFromRgba(
-		GenGridImage(a.simulation, a.mapImage),
+		a.mapImage,
 		func(tex *giu.Texture) {
 			a.mapTexture = tex
 		})
