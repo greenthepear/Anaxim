@@ -2,6 +2,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"image"
@@ -107,6 +108,25 @@ func (a *Anaxim) Update() {
 		log.Fatalf("Simulation error: %v", err)
 	}
 
+	// Add csv record if needed
+	if recordInterval != -1 &&
+		a.simulation.humanGrid.generation%recordInterval == 0 {
+
+		fmt.Println(recordInterval)
+		data := []string{
+			string(a.simulation.humanGrid.generation),
+			string(a.simulation.humanGrid.globalPop),
+			string(a.simulation.humanGrid.biggestPopCell.population),
+			fmt.Sprintf("(%d,%d)",
+				a.simulation.humanGrid.biggestPopCell.x,
+				a.simulation.humanGrid.biggestPopCell.y,
+			),
+		}
+		if err = csvWriter.Write(data); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	//Refresh image and info only now and then
 	if a.TimeSinceLastRefresh() > time.Second/24 {
 		//a.updateMapImage()
@@ -148,6 +168,9 @@ func (a *Anaxim) runSim() {
 	}()
 }
 
+var csvWriter *csv.Writer
+var recordInterval int
+
 func main() {
 
 	mapPath := flag.String("mappath", "./Maps/oldworld.png", "Path to the map PNG file")
@@ -155,7 +178,25 @@ func main() {
 	flag.IntVar(&mapResize, "mapsize", 4, "How much to resize the map (needs to be between 1 and 8)")
 	cpuprof := flag.Bool("pprof", false, "Enable cpu profiling")
 
+	flag.IntVar(&recordInterval, "ri", -1,
+		"Record interval, how often to record the simulation data in a csv file and images")
+
 	flag.Parse()
+
+	if recordInterval > -1 {
+		name := time.Now().Format(time.Stamp)
+		err := os.Mkdir("record_"+name, 0755)
+		if err != nil {
+			log.Fatalf("When creating record folder: %v", err)
+		}
+		csvFile, err := os.Create(
+			"record_" + name + "/" + name + ".csv")
+		if err != nil {
+			log.Fatalf("When creating csv file: %v", err)
+		}
+		csvWriter = csv.NewWriter(csvFile)
+		defer csvFile.Close()
+	}
 
 	if *cpuprof {
 		f, err := os.Create("anaxim.prof")
