@@ -102,6 +102,39 @@ func (a *Anaxim) TimeSinceLastRefresh() time.Duration {
 	return time.Since(a.lastRefresh)
 }
 
+func (a *Anaxim) WriteRecord() {
+	gen := a.simulation.humanGrid.generation
+	UpdateGridImage(a.simulation, a.mapImage)
+	pngFile, fileerr := os.Create(
+		fmt.Sprintf("%v/gen_%v.png", recordFolder, gen))
+	if fileerr != nil {
+		log.Fatalf("While creating png file: %v", fileerr)
+	}
+	defer pngFile.Close()
+
+	if fileerr = png.Encode(pngFile, a.mapImage); fileerr != nil {
+		log.Fatalf("While encoding png file: %v", fileerr)
+	}
+
+	data := []string{
+		pngFile.Name(),
+		fmt.Sprint(gen),
+		fmt.Sprint(a.simulation.humanGrid.globalPop),
+		fmt.Sprint(a.simulation.humanGrid.biggestPopCell.population),
+		fmt.Sprintf("(%d,%d)",
+			a.simulation.humanGrid.biggestPopCell.x,
+			a.simulation.humanGrid.biggestPopCell.y,
+		),
+	}
+	if csverr := csvWriter.Write(data); csverr != nil {
+		log.Fatal(csverr)
+	}
+	csvWriter.Flush()
+	if csverr := csvWriter.Error(); csverr != nil {
+		log.Fatal(csverr)
+	}
+}
+
 func (a *Anaxim) Update() {
 	err := a.simulation.Update()
 	if err != nil {
@@ -112,19 +145,7 @@ func (a *Anaxim) Update() {
 	if recordInterval != -1 &&
 		a.simulation.humanGrid.generation%recordInterval == 0 {
 
-		fmt.Println(recordInterval)
-		data := []string{
-			string(a.simulation.humanGrid.generation),
-			string(a.simulation.humanGrid.globalPop),
-			string(a.simulation.humanGrid.biggestPopCell.population),
-			fmt.Sprintf("(%d,%d)",
-				a.simulation.humanGrid.biggestPopCell.x,
-				a.simulation.humanGrid.biggestPopCell.y,
-			),
-		}
-		if err = csvWriter.Write(data); err != nil {
-			log.Fatal(err)
-		}
+		a.WriteRecord()
 	}
 
 	//Refresh image and info only now and then
@@ -169,6 +190,7 @@ func (a *Anaxim) runSim() {
 }
 
 var csvWriter *csv.Writer
+var recordFolder string
 var recordInterval int
 
 func main() {
@@ -185,12 +207,13 @@ func main() {
 
 	if recordInterval > -1 {
 		name := time.Now().Format(time.Stamp)
-		err := os.Mkdir("record_"+name, 0755)
+		recordFolder = "record_" + name
+		err := os.Mkdir(recordFolder, 0755)
 		if err != nil {
 			log.Fatalf("When creating record folder: %v", err)
 		}
 		csvFile, err := os.Create(
-			"record_" + name + "/" + name + ".csv")
+			recordFolder + "/" + name + ".csv")
 		if err != nil {
 			log.Fatalf("When creating csv file: %v", err)
 		}
