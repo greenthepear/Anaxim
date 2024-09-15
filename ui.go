@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 
 	"github.com/AllenDang/giu"
@@ -52,13 +53,11 @@ func NewSpeedWidgets(a *Anaxim) *SpeedWidgets {
 }
 
 func (a *Anaxim) genSpeedText() string {
-	str := "Speed controls. Currently "
-	suffixes := map[Speed]string{
+	return "Speed controls. Currently " + map[Speed]string{
 		Paused:    "paused",
 		Custom:    "on custom (slider) speed.",
 		Unlimited: "on unlimited (max) speed.",
-	}
-	return str + suffixes[a.speed]
+	}[a.speed]
 }
 
 func (a *Anaxim) genGlobalStatsString() string {
@@ -138,12 +137,15 @@ func (a *Anaxim) createLayout() {
 
 				//Inspecting map cursor
 				if a.inspectingCell != nil {
-					can.AddCircle(a.inspectingCanvasPoint, float32(mapResize),
+					can.AddCircle(
+						a.inspectingCanvasPoint.Add(image.Pt(-4, -1)),
+						float32(mapResize),
 						color.RGBA{0xff, 0xff, 0xff, 200}, 4, 2)
 				}
 
 				//Howering map cursor
-				can.AddCircle(a.howeringOverCellCanvasPoint, float32(mapResize*2),
+				can.AddCircle(a.howeringOverCellCanvasPoint.Add(image.Pt(-4, -1)),
+					float32(mapResize*2),
 					color.RGBA{0xff, 0xff, 0xff, 100}, 4, 2)
 			}),
 		),

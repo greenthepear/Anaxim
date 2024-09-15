@@ -206,7 +206,7 @@ func main() {
 	flag.Parse()
 
 	if recordInterval > -1 {
-		name := time.Now().Format(time.Stamp)
+		name := time.Now().Format(time.RFC3339)
 		recordFolder = "record_" + name
 		err := os.Mkdir(recordFolder, 0755)
 		if err != nil {
@@ -218,6 +218,7 @@ func main() {
 			log.Fatalf("When creating csv file: %v", err)
 		}
 		csvWriter = csv.NewWriter(csvFile)
+		csvWriter.Write([]string{"Map", "Generation", "World pop", "Record pop", "Record at"})
 		defer csvFile.Close()
 	}
 

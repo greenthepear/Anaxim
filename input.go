@@ -74,14 +74,7 @@ func (a *Anaxim) mapInputEvents() giu.Widget {
 		a.howeringOverCellAt = pixelPos
 	}).OnClick(giu.MouseButtonLeft, func() {
 		a.inspectingCellAt = a.howeringOverCellAt
-		realPos := giu.GetMousePos()
-
-		if mapResize != 1 {
-			realPos = snapPointToGrid(realPos, mapResize)
-		}
-
-		a.inspectingCanvasPoint = realPos
-
+		a.inspectingCanvasPoint = a.howeringOverCellCanvasPoint
 		a.inspectingCell = a.simulation.humanGrid.CellAt(
 			a.inspectingCellAt.X, a.inspectingCellAt.Y)
 	})
