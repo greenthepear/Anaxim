@@ -43,7 +43,7 @@ type Anaxim struct {
 	mapWidth, mapHeight int
 
 	speed          Speed
-	speedCustomTPS int32
+	speedCustomTPS float32
 	lastTick       time.Time
 	lastRefresh    time.Time
 
@@ -173,14 +173,15 @@ func (a *Anaxim) updateMapTexture() {
 
 func (a *Anaxim) runSim() {
 	go func() {
-		for { //Bad for performance, should use tick channels instead for custom speed
+		for {
 			switch a.speed {
 			case Paused:
 				time.Sleep(time.Microsecond)
 			case Unlimited:
 				a.Update()
 			default:
-				if a.TimeSinceLastTick() > time.Second/time.Duration(a.speedCustomTPS) {
+				if a.TimeSinceLastTick() >
+					time.Duration((1-a.speedCustomTPS)*float32(time.Second)) {
 					a.Update()
 				}
 				time.Sleep(time.Microsecond)
@@ -242,8 +243,9 @@ func main() {
 	mapWidth, mapHeight := preloadedMap.width, preloadedMap.height
 
 	s := &Sim{
-		mapGrid:   preloadedMap,
-		humanGrid: NewHumanGrid(*preloadedMap, mapWidth, mapHeight, (mapWidth*mapHeight)/5000),
+		mapGrid: preloadedMap,
+		humanGrid: NewHumanGrid(*preloadedMap, mapWidth, mapHeight,
+			(mapWidth*mapHeight)/5000),
 	}
 
 	if *prerunGenerations > 49 {
@@ -252,8 +254,12 @@ func main() {
 
 	anaxim := NewAnaxim(s)
 
-	wnd := giu.NewMasterWindow("Anaxim", mapWidth*mapResize+leftColumnWidth+20, mapHeight*mapResize+100, giu.MasterWindowFlagsNotResizable)
-	giu.Context.GetRenderer().SetTextureMagFilter(giu.TextureFilterNearest)
+	wnd := giu.NewMasterWindow("Anaxim",
+		mapWidth*mapResize+leftColumnWidth+20,
+		mapHeight*mapResize+100,
+		giu.MasterWindowFlagsFloating)
+	giu.Context.GetRenderer().
+		SetTextureMagFilter(giu.TextureFilterNearest)
 
 	anaxim.updateMapTexture()
 	anaxim.initUI()

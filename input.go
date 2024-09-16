@@ -10,20 +10,20 @@ import (
 
 func (a *Anaxim) setSpeedToUnlimited() {
 	a.speed = Unlimited
-	a.speedWidgets.pause = createBaseSpeedButton("Pause", func() { clickPause(a) }, a.mapWidth)
-	a.speedWidgets.max = createBaseSpeedButton("Disable max", func() { clickMax(a) }, a.mapWidth)
+	a.speedWidgets.pause = a.PauseButton("Pause")
+	a.speedWidgets.max = a.MaxButton("Disable max")
 }
 
 func (a *Anaxim) setSpeedToCustom() {
 	a.speed = Custom
-	a.speedWidgets.pause = createBaseSpeedButton("Pause", func() { clickPause(a) }, a.mapWidth)
-	a.speedWidgets.max = createBaseSpeedButton("Enable max", func() { clickMax(a) }, a.mapWidth)
+	a.speedWidgets.pause = a.PauseButton("Pause")
+	a.speedWidgets.max = a.MaxButton("Enable max")
 }
 
 func (a *Anaxim) setSpeedToPaused() {
 	a.speed = Paused
-	a.speedWidgets.pause = createBaseSpeedButton("Resume", func() { clickPause(a) }, a.mapWidth)
-	a.speedWidgets.max = createBaseSpeedButton("Enable max", func() { clickMax(a) }, a.mapWidth)
+	a.speedWidgets.pause = a.PauseButton("Resume")
+	a.speedWidgets.max = a.MaxButton("Enable max")
 }
 
 func clickPause(a *Anaxim) {

@@ -15,18 +15,8 @@ const leftColumnWidth = 200
 
 type SpeedWidgets struct {
 	pause  *giu.ButtonWidget
-	slider *giu.SliderIntWidget
+	slider *giu.SliderFloatWidget
 	max    *giu.ButtonWidget
-}
-
-func createButtonWithSize(label string, onclick func(), width, height float32) *giu.ButtonWidget {
-	butt := giu.Button(label).OnClick(onclick)
-	butt.Size(width, height)
-	return butt
-}
-
-func createBaseSpeedButton(label string, onlick func(), mapWidth int) *giu.ButtonWidget {
-	return createButtonWithSize(label, onlick, float32(mapWidth*mapResize/8), 20)
 }
 
 func (a *Anaxim) initUI() {
@@ -42,13 +32,23 @@ func (a *Anaxim) initUI() {
 	}
 }
 
+func (a *Anaxim) NewBaseSpeedButton(label string, onClick func(*Anaxim)) *giu.ButtonWidget {
+	return giu.Button(label).OnClick(func() { onClick(a) }).Size(100, 20)
+}
+
+func (a *Anaxim) PauseButton(label string) *giu.ButtonWidget {
+	return a.NewBaseSpeedButton(label, clickPause)
+}
+
+func (a *Anaxim) MaxButton(label string) *giu.ButtonWidget {
+	return a.NewBaseSpeedButton(label, clickMax)
+}
+
 func NewSpeedWidgets(a *Anaxim) *SpeedWidgets {
-	slider := giu.SliderInt(&a.speedCustomTPS, 1, 100).OnChange(func() { a.setSpeedToCustom() })
-	slider.Size(float32(a.mapWidth*mapResize) * 0.74) //makes it roughly fit but should find a better way for this
 	return &SpeedWidgets{
-		createBaseSpeedButton("Pause", func() { clickPause(a) }, a.mapWidth),
-		slider,
-		createBaseSpeedButton("Enable max", func() { clickMax(a) }, a.mapWidth),
+		a.PauseButton("Pause"),
+		giu.SliderFloat(&a.speedCustomTPS, 0, 1).OnChange(func() { a.setSpeedToCustom() }),
+		a.MaxButton("Enable max"),
 	}
 }
 
@@ -116,61 +116,64 @@ Human activity:
 
 func (a *Anaxim) createLayout() {
 	img := giu.Image(a.mapTexture)
-	img.Size(float32(a.mapImage.Bounds().Dx()*mapResize), float32(a.mapImage.Bounds().Dy()*mapResize))
-
-	globalStatLabel := giu.Label(a.genGlobalStatsString()).Wrapped(true)
-	localStatLabel := giu.Label(a.genLocalStatsString()).Wrapped(true)
-	mapAndSpeedCol := giu.Column(
-		giu.Row(
-			giu.Label(a.genSpeedText()),
-		),
-		giu.Row(
-			a.speedWidgets.pause,
-			a.speedWidgets.slider,
-			a.speedWidgets.max,
-		),
-		giu.Row(
-			img,
-			a.mapInputEvents(),
-			giu.Custom(func() {
-				can := giu.GetCanvas()
-
-				//Inspecting map cursor
-				if a.inspectingCell != nil {
-					can.AddCircle(
-						a.inspectingCanvasPoint.Add(image.Pt(-4, -1)),
-						float32(mapResize),
-						color.RGBA{0xff, 0xff, 0xff, 200}, 4, 2)
-				}
-
-				//Howering map cursor
-				can.AddCircle(a.howeringOverCellCanvasPoint.Add(image.Pt(-4, -1)),
-					float32(mapResize*2),
-					color.RGBA{0xff, 0xff, 0xff, 100}, 4, 2)
-			}),
-		),
-		giu.Row(
-			giu.Dummy(0, 0),
-		),
-		giu.Row(
-			giu.Label(a.howeringOverCellAt.String()),
-		),
-	)
+	img.Size(
+		float32(a.mapImage.Bounds().Dx()*mapResize),
+		float32(a.mapImage.Bounds().Dy()*mapResize))
 
 	giu.SingleWindow().Layout(
 		giu.Row(
 			giu.Column(
 				giu.Row(
-					globalStatLabel,
+					giu.Label(a.genGlobalStatsString()).Wrapped(true),
 				),
 				giu.Row(
 					giu.Dummy(leftColumnWidth, 30),
 				),
 				giu.Row(
-					localStatLabel,
+					giu.Label(a.genLocalStatsString()).Wrapped(true),
 				),
 			),
-			mapAndSpeedCol,
+			giu.Column(
+				giu.Row(
+					giu.Label(a.genSpeedText()),
+				),
+				giu.Row(
+					giu.Align(giu.AlignCenter).To(
+						a.speedWidgets.pause,
+						a.speedWidgets.slider,
+						a.speedWidgets.max,
+					),
+				),
+				giu.Row(
+					img,
+					a.mapInputEvents(),
+					giu.Custom(func() {
+						can := giu.GetCanvas()
+
+						//Inspecting map cursor
+						if a.inspectingCell != nil {
+							can.AddCircle(
+								a.inspectingCanvasPoint.Add(image.Pt(-4, -1)),
+								float32(mapResize),
+								color.RGBA{0xff, 0xff, 0xff, 200}, 4, 2)
+						}
+
+						//Howering map cursor
+						can.AddCircle(a.howeringOverCellCanvasPoint.Add(image.Pt(-4, -1)),
+							float32(mapResize*2),
+							color.RGBA{0xff, 0xff, 0xff, 100}, 4, 2)
+					}),
+				),
+				giu.Row(
+					giu.Dummy(0, 0),
+				),
+				giu.Row(
+					giu.Label(a.howeringOverCellAt.String()),
+				),
+			),
+			giu.Column(
+				giu.Dummy(5, 0),
+			),
 		),
 	)
 }
