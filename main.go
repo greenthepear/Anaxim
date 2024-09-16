@@ -258,13 +258,12 @@ func main() {
 		mapWidth*mapResize+leftColumnWidth+20,
 		mapHeight*mapResize+100,
 		giu.MasterWindowFlagsFloating)
-	giu.Context.GetRenderer().
-		SetTextureMagFilter(giu.TextureFilterNearest)
 
 	anaxim.updateMapTexture()
 	anaxim.initUI()
 
 	anaxim.runSim()
-
+	giu.Context.GetRenderer().
+		SetTextureMagFilter(giu.TextureFilterNearest)
 	wnd.Run(anaxim.loop)
 }

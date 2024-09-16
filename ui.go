@@ -47,7 +47,9 @@ func (a *Anaxim) MaxButton(label string) *giu.ButtonWidget {
 func NewSpeedWidgets(a *Anaxim) *SpeedWidgets {
 	return &SpeedWidgets{
 		a.PauseButton("Pause"),
-		giu.SliderFloat(&a.speedCustomTPS, 0, 1).OnChange(func() { a.setSpeedToCustom() }),
+		giu.SliderFloat(&a.speedCustomTPS, 0, 1).
+			OnChange(func() { a.setSpeedToCustom() }).
+			Size(300),
 		a.MaxButton("Enable max"),
 	}
 }
@@ -138,11 +140,9 @@ func (a *Anaxim) createLayout() {
 					giu.Label(a.genSpeedText()),
 				),
 				giu.Row(
-					giu.Align(giu.AlignCenter).To(
-						a.speedWidgets.pause,
-						a.speedWidgets.slider,
-						a.speedWidgets.max,
-					),
+					a.speedWidgets.pause,
+					a.speedWidgets.max,
+					a.speedWidgets.slider,
 				),
 				giu.Row(
 					img,
@@ -170,9 +170,6 @@ func (a *Anaxim) createLayout() {
 				giu.Row(
 					giu.Label(a.howeringOverCellAt.String()),
 				),
-			),
-			giu.Column(
-				giu.Dummy(5, 0),
 			),
 		),
 	)
