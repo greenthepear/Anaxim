@@ -3,8 +3,6 @@ package main
 
 import (
 	"fmt"
-	"image"
-	"image/color"
 
 	"github.com/AllenDang/giu"
 	"golang.org/x/text/language"
@@ -146,30 +144,19 @@ func (a *Anaxim) createLayout() {
 					giu.Label(a.TimeBetweenLastTicks().String()),
 				),
 				giu.Row(
+					giu.Button("+").OnClick(func() {
+						mapResize++
+					}).Size(60, 20),
+					giu.Button("-").OnClick(func() {
+						if mapResize > 1 {
+							mapResize--
+						}
+					}).Size(60, 20),
+					giu.Label(a.howeringOverCellAt.String()),
+				),
+				giu.Row(
 					img,
 					a.mapInputEvents(),
-					giu.Custom(func() {
-						can := giu.GetCanvas()
-
-						//Inspecting map cursor
-						if a.inspectingCell != nil {
-							can.AddCircle(
-								a.inspectingCanvasPoint.Add(image.Pt(-4, -1)),
-								float32(mapResize),
-								color.RGBA{0xff, 0xff, 0xff, 200}, 4, 2)
-						}
-
-						//Howering map cursor
-						can.AddCircle(a.howeringOverCellCanvasPoint.Add(image.Pt(-4, -1)),
-							float32(mapResize*2),
-							color.RGBA{0xff, 0xff, 0xff, 100}, 4, 2)
-					}),
-				),
-				giu.Row(
-					giu.Dummy(0, 0),
-				),
-				giu.Row(
-					giu.Label(a.howeringOverCellAt.String()),
 				),
 			),
 		),

@@ -76,7 +76,7 @@ func NewAnaxim(s *Sim) *Anaxim {
 	mapImg :=
 		image.NewRGBA(image.Rect(0, 0, s.mapGrid.width, s.mapGrid.height))
 
-	UpdateGridImage(s, mapImg)
+	UpdateGridImage(s, mapImg, image.Pt(-1, -1))
 
 	a := &Anaxim{
 		simulation:                  s,
@@ -89,7 +89,7 @@ func NewAnaxim(s *Sim) *Anaxim {
 		speedCustomTPS:              1,
 		howeringOverCellAt:          image.Pt(0, 0),
 		howeringOverCellCanvasPoint: image.Pt(0, 0),
-		inspectingCellAt:            image.Pt(0, 0),
+		inspectingCellAt:            image.Pt(-1, -1),
 		inspectingCell:              nil,
 	}
 	return a
@@ -109,7 +109,7 @@ func (a *Anaxim) TimeSinceLastRefresh() time.Duration {
 
 func (a *Anaxim) WriteRecord() {
 	gen := a.simulation.humanGrid.generation
-	UpdateGridImage(a.simulation, a.mapImage)
+	UpdateGridImage(a.simulation, a.mapImage, a.inspectingCellAt)
 	pngFile, fileerr := os.Create(
 		fmt.Sprintf("%v/gen_%v.png", recordFolder, gen))
 	if fileerr != nil {
@@ -156,10 +156,7 @@ func (a *Anaxim) Update() {
 
 	//Refresh image and info only now and then
 	if a.TimeSinceLastRefresh() > time.Second/24 {
-		//a.updateMapImage()
 		a.updateMapTexture()
-		giu.Update()
-		a.lastRefresh = time.Now()
 	}
 
 	a.previousTick = a.lastTick
@@ -171,32 +168,29 @@ func (a *Anaxim) loop() {
 }
 
 func (a *Anaxim) updateMapTexture() {
-	UpdateGridImage(a.simulation, a.mapImage)
+	UpdateGridImage(a.simulation, a.mapImage, a.inspectingCellAt)
 	giu.EnqueueNewTextureFromRgba(
 		a.mapImage,
 		func(tex *giu.Texture) {
 			a.mapTexture = tex
 		})
+	giu.Update()
+	a.lastRefresh = time.Now()
 }
 
 func (a *Anaxim) runSim() {
-	if a.speed == Paused {
-		return
-	}
-	go func() {
-		for {
-			switch a.speed {
-			case Paused:
-				return
-			case Unlimited:
-				a.Update()
-			default:
-				a.Update()
-				time.Sleep(time.Duration(
-					(1 - a.speedCustomTPS) * float32(time.Second)))
-			}
+	for {
+		switch a.speed {
+		case Paused:
+			return
+		case Unlimited:
+			a.Update()
+		case Custom:
+			a.Update()
+			time.Sleep(time.Duration(
+				(1 - a.speedCustomTPS) * float32(time.Second)))
 		}
-	}()
+	}
 }
 
 var csvWriter *csv.Writer
@@ -271,8 +265,9 @@ func main() {
 	anaxim.updateMapTexture()
 	anaxim.initUI()
 
-	anaxim.runSim()
+	go anaxim.runSim()
 	giu.Context.GetRenderer().
 		SetTextureMagFilter(giu.TextureFilterNearest)
+
 	wnd.Run(anaxim.loop)
 }

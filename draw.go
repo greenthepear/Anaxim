@@ -7,11 +7,16 @@ import (
 	"math"
 )
 
-func UpdateGridImage(s *Sim, img *image.RGBA) {
+func UpdateGridImage(s *Sim, img *image.RGBA, indicate image.Point) {
 	width := s.humanGrid.width
 
 	maxPop := s.humanGrid.biggestPopCell.population
 	for i, cell := range s.humanGrid.area {
+		x, y := i%width, i/width
+		if indicate.Eq(image.Pt(x, y)) {
+			img.Set(x, y, color.White)
+			continue
+		}
 		var landValue byte = 0
 		if s.mapGrid.area[i].isLand {
 			landValue = 0xff
@@ -32,6 +37,6 @@ func UpdateGridImage(s *Sim, img *image.RGBA) {
 		}
 
 		//Fancy coordinates from index of 1d slice, probably slow though
-		img.Set(i%width, i/width, col)
+		img.Set(x, y, col)
 	}
 }

@@ -12,7 +12,7 @@ func (a *Anaxim) unpauseInto(s Speed) {
 	previousSpeed := a.speed
 	a.speed = s
 	if previousSpeed == Paused {
-		a.runSim()
+		go a.runSim()
 	}
 }
 
@@ -59,8 +59,10 @@ func clickMax(a *Anaxim) {
 }
 
 func snapPointToGrid(pt image.Point, gridSize int) image.Point {
-	//Div floors
-	return pt.Div(mapResize).Mul(mapResize).Add(image.Pt(gridSize, gridSize))
+	return image.Pt(
+		pt.X/mapResize*mapResize+gridSize,
+		pt.Y/mapResize*mapResize+gridSize,
+	)
 }
 
 func (a *Anaxim) mapInputEvents() giu.Widget {
@@ -85,5 +87,6 @@ func (a *Anaxim) mapInputEvents() giu.Widget {
 		a.inspectingCanvasPoint = a.howeringOverCellCanvasPoint
 		a.inspectingCell = a.simulation.humanGrid.CellAt(
 			a.inspectingCellAt.X, a.inspectingCellAt.Y)
+		a.updateMapTexture()
 	})
 }
