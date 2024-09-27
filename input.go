@@ -8,14 +8,22 @@ import (
 	"github.com/AllenDang/giu"
 )
 
+func (a *Anaxim) unpauseInto(s Speed) {
+	previousSpeed := a.speed
+	a.speed = s
+	if previousSpeed == Paused {
+		a.runSim()
+	}
+}
+
 func (a *Anaxim) setSpeedToUnlimited() {
-	a.speed = Unlimited
+	a.unpauseInto(Unlimited)
 	a.speedWidgets.pause = a.PauseButton("Pause")
 	a.speedWidgets.max = a.MaxButton("Disable max")
 }
 
 func (a *Anaxim) setSpeedToCustom() {
-	a.speed = Custom
+	a.unpauseInto(Custom)
 	a.speedWidgets.pause = a.PauseButton("Pause")
 	a.speedWidgets.max = a.MaxButton("Enable max")
 }

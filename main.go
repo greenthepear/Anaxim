@@ -44,6 +44,7 @@ type Anaxim struct {
 
 	speed          Speed
 	speedCustomTPS float32
+	previousTick   time.Time
 	lastTick       time.Time
 	lastRefresh    time.Time
 
@@ -98,6 +99,10 @@ func (a *Anaxim) TimeSinceLastTick() time.Duration {
 	return time.Since(a.lastTick)
 }
 
+func (a *Anaxim) TimeBetweenLastTicks() time.Duration {
+	return a.lastTick.Sub(a.previousTick)
+}
+
 func (a *Anaxim) TimeSinceLastRefresh() time.Duration {
 	return time.Since(a.lastRefresh)
 }
@@ -143,7 +148,8 @@ func (a *Anaxim) Update() {
 
 	// Add csv record if needed
 	if recordInterval != -1 &&
-		a.simulation.humanGrid.generation%recordInterval == 0 {
+		(a.simulation.humanGrid.generation == 1 ||
+			a.simulation.humanGrid.generation%recordInterval == 0) {
 
 		a.WriteRecord()
 	}
@@ -155,6 +161,8 @@ func (a *Anaxim) Update() {
 		giu.Update()
 		a.lastRefresh = time.Now()
 	}
+
+	a.previousTick = a.lastTick
 	a.lastTick = time.Now()
 }
 
@@ -172,19 +180,20 @@ func (a *Anaxim) updateMapTexture() {
 }
 
 func (a *Anaxim) runSim() {
+	if a.speed == Paused {
+		return
+	}
 	go func() {
 		for {
 			switch a.speed {
 			case Paused:
-				time.Sleep(time.Microsecond)
+				return
 			case Unlimited:
 				a.Update()
 			default:
-				if a.TimeSinceLastTick() >
-					time.Duration((1-a.speedCustomTPS)*float32(time.Second)) {
-					a.Update()
-				}
-				time.Sleep(time.Microsecond)
+				a.Update()
+				time.Sleep(time.Duration(
+					(1 - a.speedCustomTPS) * float32(time.Second)))
 			}
 		}
 	}()

@@ -141,8 +141,9 @@ func (a *Anaxim) createLayout() {
 				),
 				giu.Row(
 					a.speedWidgets.pause,
-					a.speedWidgets.max,
 					a.speedWidgets.slider,
+					a.speedWidgets.max,
+					giu.Label(a.TimeBetweenLastTicks().String()),
 				),
 				giu.Row(
 					img,
@@ -173,4 +174,5 @@ func (a *Anaxim) createLayout() {
 			),
 		),
 	)
+
 }
