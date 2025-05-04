@@ -65,11 +65,11 @@ The PNG map file is converted to a map grid like this:
 - Tribes and countries
 - Wars and diplomacy
 - ~~Speed/pause controls~~
-- GPU acceleration with OpenCL (scary!)
+- GPU acceleration with OpenCL? (scary!)
 - Interactivity
 - Stats and graphs!
 - ~~Custom maps~~ (and random maps?)
 - Map modes
 
-# Contributing
-Sadly as I am writing a thesis on this project, I cannot accept any contributions until that's done (probably will take a few months). As the project is under GPL-3.0, I cannot stop you from forking and making your own Anaxim, but for now I would kindly ask to only contribute by sharing ideas with me and sharing Anaxim with the world instead. 
+# License
+GPL-3.0 - have fun!
